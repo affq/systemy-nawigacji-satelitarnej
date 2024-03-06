@@ -1,4 +1,3 @@
-import wget
 import numpy as np
 from alm_module import get_alm_data_str
 import math
@@ -29,7 +28,7 @@ def get_gps_time(y,m,d,h=0,mnt=0,s=0):
 y, m, d = 2024, 2, 29
 h, mnt, s = 12, 0, 0
 
-week, sow = get_gps_time(y,m,d)
+week, sow = get_gps_time(y,m,d,h,mnt,s)
 print('Tydzień:', week, 'Sekunda tygodnia:', sow)
 
 MI = 3.986005e14 
@@ -37,15 +36,16 @@ OMEGA_E = 7.2921151467e-5
 
 wiersz_nav = nav[0,:]
 
-def satpos(t, week, wiersz_nav):
-    e = wiersz_nav[2] # ekscentryczność
+def satpos(sow, week, wiersz_nav):
+    e = wiersz_nav[2] # ekscentryczność orbity (mimośród)
     a = wiersz_nav[3]**2 # półoś wielka [m]
     Omega = wiersz_nav[4] * np.pi/180 # długość węzła wstępującego [rad]
     omega = wiersz_nav[5] * np.pi/180 # argument perigeum [rad]
     M0 = wiersz_nav[6] * np.pi/180 # anomalia średnia [rad]
-    ToA = wiersz_nav[7] # czas almanac [s]
+    ToA = wiersz_nav[7] # czas odniesienia almanachu [s]
     i = (54 + wiersz_nav[8]) * np.pi/180 # inklinacja [rad]
-
+    Omega_dot = (wiersz_nav[9]/1000) * np.pi/180 # tempo zmiany rektanscenzji węzła wstępującego [rad/s]
+    gps_week = wiersz_nav[12]
 
     t_z_tygodniami = week * 7 * 86400 + sow
     ToA_z_tygodniami = gps_week * 7 * 86400 + ToA
@@ -53,6 +53,7 @@ def satpos(t, week, wiersz_nav):
     tk = t_z_tygodniami - ToA_z_tygodniami
 
     n = math.sqrt(MI/a**3) # Wyznaczenie średniej prędkości kątowej n, znanej jako ruch średni (ang. mean motion) na podstawie III prawa Kepplera
+
     Mk = M0 + n * tk # Poprawiona anomalia średnia na epokę tk
 
     #Wyznaczenie anomalii mimośrodowej (Równanie Kepplera)
@@ -64,6 +65,26 @@ def satpos(t, week, wiersz_nav):
         E = Enew
     
     #Wyznaczenie anomalii prawdziwej
+    vk = math.atan2(math.sqrt(1-e**2)*math.sin(E), math.cos(E)-e)
     
+    #Wyznaczenie argumentu szerokości
+    Phik = vk + omega
+
+    #Wyznaczenie promienia orbity
+    rk = a * (1 - e * math.cos(E))
+
+    #Wyznaczenie pozycji satelity w układzie orbity
+    xk = rk * math.cos(Phik)
+    yk = rk * math.sin(Phik)
+
+    #Poprawiona długość węzła wstępującego
+    Omega_k = Omega + (Omega_dot - OMEGA_E) * tk - (OMEGA_E * ToA)
+
+    #Wyznaczenie pozycji satelity w układzie geocentrycznym ECEF:
+    x = xk * math.cos(Omega_k) - yk * math.cos(i) * math.sin(Omega_k)
+    y = xk * math.sin(Omega_k) + yk * math.cos(i) * math.cos(Omega_k)
+    z = yk * math.sin(i)
 
     return x, y, z
+
+satpos(388800, 2303, wiersz_nav)
