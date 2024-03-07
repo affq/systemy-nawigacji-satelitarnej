@@ -2,15 +2,6 @@ import numpy as np
 from alm_module import get_alm_data_str
 import math
 
-# file = 'ftp://ftp.trimble.com/pub/eph/Almanac.alm'
-# wget.download(file, 'Almanac.alm')
-
-nav, prn = get_alm_data_str('Almanac2024053.alm')
-
-satelity = nav[:,0]<400
-nav = nav[satelity,:]
-prn = np.array(prn)[satelity]
-
 def julday(y,m,d,h=0):
     if m <= 2:
         y = y - 1
@@ -24,6 +15,34 @@ def get_gps_time(y,m,d,h=0,mnt=0,s=0):
     day = days%7
     sow = day * 86400 + h * 3600 + mnt * 60 + s
     return week, sow
+
+a = 6378137 # wielka półoś elipsoidy GRS80 w metrach
+e2 = 0.00669438002290 # kwadrat pierwszego mimośrodu dla elipsoidy GRS80
+
+def flh2xyz(phi, lamb, h):
+    N = a/np.sqrt(1-e2*np.sin(phi)**2)
+    x = (N + h)*np.cos(phi)*np.cos(lamb)
+    y = (N + h)*np.cos(phi)*np.sin(lamb)
+    z = (N*(1-e2)+h)*np.sin(phi)
+    return [x, y, z]
+
+def Rneu(phi, lamb):
+    R = np.array([[-np.sin(phi)*np.cos(lamb), -np.sin(lamb), np.cos(phi)*np.cos(lamb)],
+                    [-np.sin(phi)*np.sin(lamb), np.cos(lamb), np.cos(phi)*np.sin(lamb)],
+                    [np.cos(phi), 0, np.sin(phi)]])
+    return R
+
+FI = 52
+LAMBDA = 21
+H = 100
+
+FI, LAMBDA, H = flh2xyz(FI, LAMBDA, H)
+
+nav, prn = get_alm_data_str('Almanac2024053.alm')
+
+satelity = nav[:,0]<400
+nav = nav[satelity,:]
+prn = np.array(prn)[satelity]
 
 y, m, d = 2024, 2, 29
 h, mnt, s = 12, 0, 0
@@ -87,4 +106,38 @@ def satpos(sow, week, wiersz_nav):
 
     return x, y, z
 
-satpos(388800, 2303, wiersz_nav)
+positions = []
+maska = 10
+
+for i in range(0, 24):
+    for sat in nav:
+        x, y, z = satpos(sow, week, sat)
+        xryrzr = np.array([x, y, z]) - np.array([FI, LAMBDA, H])
+        neu = Rneu(FI, LAMBDA).dot(xryrzr)
+        az = math.atan2(neu[0], neu[1])
+        el = math.asin(neu[2]/np.sqrt(neu[0]**2 + neu[1]**2 + neu[2]**2))
+
+        if el > maska:
+            #wiersz A...
+            A = []
+
+A = np.array(A)
+Q = np.linalg.inv(A.T.dot(A))
+Q = np.diag(Q)
+GDOP = math.sqrt(np.trace(Q))
+PDOP = math.sqrt(Q[0] + Q[1] + Q[2])
+HDOP = math.sqrt(Q[0] + Q[1])
+VDOP = math.sqrt(Q[2])
+
+Qneu = Rneu(FI, LAMBDA).T.dot(Q[0:3]).dot(Rneu(FI, LAMBDA))
+
+print(positions[0])
+print(positions[1])
+print(positions[2])
+
+
+
+
+# o polnocy gop najnizszy, o 10 najwyzszy
+
+# dla satelitow > maska liczymy wiersz macierzy A
