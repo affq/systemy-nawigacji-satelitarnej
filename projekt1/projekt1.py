@@ -16,8 +16,15 @@ def get_gps_time(y,m,d,h=0,mnt=0,s=0):
     sow = day * 86400 + h * 3600 + mnt * 60 + s
     return week, sow
 
-a = 6378137 # wielka półoś elipsoidy GRS80 w metrach
-e2 = 0.00669438002290 # kwadrat pierwszego mimośrodu dla elipsoidy GRS80
+a = 6378137
+'''
+wielka półoś elipsoidy GRS80 w metrach
+'''
+
+e2 = 0.00669438002290
+'''
+kwadrat pierwszego mimośrodu dla elipsoidy GRS80
+'''
 
 def flh2xyz(phi, lamb, h):
     N = a/np.sqrt(1-e2*np.sin(phi)**2)
@@ -33,12 +40,23 @@ def Rneu(phi, lamb):
     return R
 
 FI = 52
+'''
+szerokość geograficzna odbiornika w stopniach
+'''
+
 LAMBDA = 21
+'''
+długość geograficzna odbiornika w stopniach
+'''
 H = 100
+'''
+wysokość odbiornika w metrach
+'''
 
 FI, LAMBDA, H = flh2xyz(FI, LAMBDA, H)
 
 nav, prn = get_alm_data_str('Almanac2024053.alm')
+
 
 satelity = nav[:,0]<400
 nav = nav[satelity,:]
