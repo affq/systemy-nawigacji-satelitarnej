@@ -6,7 +6,7 @@ def julday(y,m,d,h=0):
     if m <= 2:
         y = y - 1
         m = m + 12
-    jd = math.floor(365.25*(y+4716))+math.floor(30.6001*(m+1))+d+h/24-1537.5;
+    jd = math.floor(365.25*(y+4716))+math.floor(30.6001*(m+1))+d+h/24-1537.5
     return jd
 
 def get_gps_time(y,m,d,h=0,mnt=0,s=0):
@@ -16,17 +16,12 @@ def get_gps_time(y,m,d,h=0,mnt=0,s=0):
     sow = day * 86400 + h * 3600 + mnt * 60 + s
     return week, sow
 
-a = 6378137
-'''
-wielka półoś elipsoidy GRS80 w metrach
-'''
-
-e2 = 0.00669438002290
-'''
-kwadrat pierwszego mimośrodu dla elipsoidy GRS80
-'''
-
 def flh2xyz(phi, lamb, h):
+    '''
+    funkcja przeliczająca współrzędne geograficzne na współrzędne kartezjańskie
+
+    phi, lamb  w radianach
+    '''
     N = a/np.sqrt(1-e2*np.sin(phi)**2)
     x = (N + h)*np.cos(phi)*np.cos(lamb)
     y = (N + h)*np.cos(phi)*np.sin(lamb)
@@ -34,43 +29,42 @@ def flh2xyz(phi, lamb, h):
     return [x, y, z]
 
 def Rneu(phi, lamb):
+    '''
+    funkcja zwracająca macierz rotacji z układu ECEF do układu NEU
+
+    phi, lamb  w radianach
+    '''
     R = np.array([[-np.sin(phi)*np.cos(lamb), -np.sin(lamb), np.cos(phi)*np.cos(lamb)],
                     [-np.sin(phi)*np.sin(lamb), np.cos(lamb), np.cos(phi)*np.sin(lamb)],
                     [np.cos(phi), 0, np.sin(phi)]])
     return R
 
-FI = 52
-'''
-szerokość geograficzna odbiornika w stopniach
-'''
+a = 6378137 # wielka półoś elipsoidy GRS80 w metrach
+e2 = 0.00669438002290 #kwadrat pierwszego mimośrodu dla elipsoidy GRS80
 
-LAMBDA = 21
-'''
-długość geograficzna odbiornika w stopniach
-'''
-H = 100
-'''
-wysokość odbiornika w metrach
-'''
+FI = 52 #szerokość geograficzna odbiornika w stopniach
+LAMBDA = 21 #długość geograficzna odbiornika w stopniach
+H = 100 #wysokość odbiornika w metrach
 
-FI, LAMBDA, H = flh2xyz(FI, LAMBDA, H)
-
-nav, prn = get_alm_data_str('Almanac2024053.alm')
-
-
-satelity = nav[:,0]<400
-nav = nav[satelity,:]
-prn = np.array(prn)[satelity]
-
-y, m, d = 2024, 2, 29
+year, m, d = 2024, 2, 29 # czas na który chcemy wyznaczyć pozycję satelitów
 h, mnt, s = 12, 0, 0
 
-week, sow = get_gps_time(y,m,d,h,mnt,s)
-print('Tydzień:', week, 'Sekunda tygodnia:', sow)
-
-MI = 3.986005e14 
+MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
+file = 'Almanac2024053.alm'
+
+maska = 10 # maska elewacji w stopniach
+
+satelites = []
+A = []
+
+WEEK, SOW = get_gps_time(year,m,d,h,mnt,s) # tydzień i czas w sekundach od początku tygodnia
+
+nav, prn = get_alm_data_str(file)
+satelity = nav[:,0]<100 # tylko giepeesy
+nav = nav[satelity,:] 
+prn = np.array(prn)[satelity]
 wiersz_nav = nav[0,:]
 
 def satpos(sow, week, wiersz_nav):
@@ -124,38 +118,56 @@ def satpos(sow, week, wiersz_nav):
 
     return x, y, z
 
-positions = []
-maska = 10
+odbiornik_x, odbiornik_y, odbiornik_z = flh2xyz(math.radians(FI), math.radians(LAMBDA), H) # współrzędne odbiornika w układzie xyz
 
-for i in range(0, 24):
-    for sat in nav:
-        x, y, z = satpos(sow, week, sat)
-        xryrzr = np.array([x, y, z]) - np.array([FI, LAMBDA, H])
-        neu = Rneu(FI, LAMBDA).dot(xryrzr)
-        az = math.atan2(neu[0], neu[1])
-        el = math.asin(neu[2]/np.sqrt(neu[0]**2 + neu[1]**2 + neu[2]**2))
+print(f"Wyniki dla epoki y={year} m={m} d={d} h={h} mnt={mnt} s={s}")
+print(f"Dane z pliku almanach: {file} \n")
 
-        if el > maska:
-            #wiersz A...
-            A = []
+print(f'Współrzędne odbiornika phi: {FI}, lambda: {LAMBDA} [deg]; h: {H}m')
+print(f'Współrzędne XYZ odbiornika: {odbiornik_x}, {odbiornik_y}, {odbiornik_z}')
+print(f'Maska elewacji: {maska} [deg]')
+
+for sat in nav:
+    x, y, z = satpos(SOW, WEEK, sat) # współrzędne satelity w układzie xyz
+    sat_odb = np.array([x, y, z]) - np.array([odbiornik_x, odbiornik_y, odbiornik_z]) # wektor satelita-odbiornik xyz
+    neu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(sat_odb) # wektor satelita-odbiornik neu
+    az = math.degrees(math.atan2(neu[1], neu[0])) # azymut [deg]
+    if az < 0:
+        az += 360
+    ro = np.sqrt(neu[0]**2 + neu[1]**2 + neu[2]**2) # odległość [m]
+    el = math.degrees(math.asin(neu[2]/ro)) # elewacja [deg]
+
+    print(f"SATELITA: {sat[0]}")
+    print(f"Współrzędne satelity: {x}, {y}, {z} [m]")
+    print(f"Wektor satelita-odbiornik w ukł. geocentrycznym Xsr: {sat_odb[0]}, {sat_odb[1]}, {sat_odb[2]} [m]")
+    print(f"Wektor satelita-odbiornik w ukł. NEU: {neu[0]}, {neu[1]}, {neu[2]} [m]")
+    print(f"Elewacja: {el} [deg]")
+    print(f"Azymut: {az} [deg] \n")
+
+    if el > maska:
+        satelites.append(sat[0])
+        A.append([-(x-odbiornik_x)/ro, -(y-odbiornik_y)/ro, -(z-odbiornik_z)/ro, 1])
 
 A = np.array(A)
 Q = np.linalg.inv(A.T.dot(A))
-Q = np.diag(Q)
-GDOP = math.sqrt(np.trace(Q))
-PDOP = math.sqrt(Q[0] + Q[1] + Q[2])
-HDOP = math.sqrt(Q[0] + Q[1])
-VDOP = math.sqrt(Q[2])
+Qdiag = np.diag(Q)
 
-Qneu = Rneu(FI, LAMBDA).T.dot(Q[0:3]).dot(Rneu(FI, LAMBDA))
+GDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2] + Qdiag[3])
+PDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
+TDOP = math.sqrt(Qdiag[3])
 
-print(positions[0])
-print(positions[1])
-print(positions[2])
+Qneu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(math.radians(FI), math.radians(LAMBDA)))
+Qneudiag = np.diag(Qneu)
 
+HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
+VDOP = math.sqrt(Qneudiag[2])
+PDOPneu = math.sqrt(Qneudiag[0] + Qneudiag[1] + Qneudiag[2])
 
-
+print(f"GDOP: {round(GDOP, 5)}")
+print(f"PDOP: {round(PDOP, 5)}")
+print(f"TDOP: {round(TDOP, 5)}")
+print(f"HDOP: {round(HDOP, 5)}")
+print(f"VDOP: {round(VDOP, 5)}")
 
 # o polnocy gop najnizszy, o 10 najwyzszy
 
-# dla satelitow > maska liczymy wiersz macierzy A
