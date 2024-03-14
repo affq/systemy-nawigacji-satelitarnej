@@ -13,6 +13,8 @@ LAMBDArad = math.radians(LAMBDA)
 year, m, d = 2024, 2, 29 # czas na który chcemy wyznaczyć pozycję satelitów
 h, mnt, s = 12, 0, 0
 
+# +18s bo sekundy przestępne
+
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
@@ -91,51 +93,68 @@ print(f'Współrzędne odbiornika phi: {FI}, lambda: {LAMBDA} [deg]; h: {h}m')
 print(f'Współrzędne XYZ odbiornika: {odbiornik_x}, {odbiornik_y}, {odbiornik_z}')
 print(f'Maska elewacji: {maska} [deg] \n')
 
-for sat in nav:
-    x, y, z = satpos(SOW, WEEK, sat) # współrzędne satelity w układzie xyz
-    sat_odb = np.array([x, y, z]) - np.array([odbiornik_x, odbiornik_y, odbiornik_z]) # wektor satelita-odbiornik xyz
-    neu = Rneu(FIrad, LAMBDArad).T.dot(sat_odb) # wektor satelita-odbiornik neu
-    az = math.degrees(math.atan2(neu[1], neu[0])) # azymut [deg]
-    if az < 0:
-        az += 360
-    ro = np.sqrt(neu[0]**2 + neu[1]**2 + neu[2]**2) # odległość [m]
-    el = math.degrees(math.asin(neu[2]/ro)) # elewacja [deg]
+# obliczenie co 10 minut pozycji satelitow
+h0, mnt0, s0 = 0, 0, 0
+week0, sow0 = get_gps_time(year,m,d,h0,mnt0,s0)
 
-    print(f"SATELITA: {sat[0]}")
-    print(f"Współrzędne satelity: {round(x, 3)}, {round(y, 3)}, {round(z, 3)} [m]")
-    print(f"Wektor satelita-odbiornik w ukł. geocentrycznym Xsr: {sat_odb[0]}, {sat_odb[1]}, {sat_odb[2]} [m]")
-    print(f"Wektor satelita-odbiornik w ukł. NEU: {neu[0]}, {neu[1]}, {neu[2]} [m]")
-    print(f"Elewacja: {round(el, 3)} [deg]")
-    print(f"Azymut: {round(az, 3)} [deg]")
+#week0 and sow0 to int
+week0 = int(week0)
+sow0 = int(sow0)
 
-    if el > maska:
-        satelites.append(sat[0])
-        a = [-(x-odbiornik_x)/ro, -(y-odbiornik_y)/ro, -(z-odbiornik_z)/ro, 1]
-        A.append(a)
-        print("wiersz macierzy A: \n", a)
+As = []
+elevations = []
+azimuths = []
+DOPs = []
+
+# słownik?
+
+for t in range (sow0, sow0 + 24 * 60 * 60, 600):
+    for sat in nav:
+        x, y, z = satpos(t, week0, sat) # współrzędne satelity w układzie xyz
+        sat_odb = np.array([x, y, z]) - np.array([odbiornik_x, odbiornik_y, odbiornik_z]) # wektor satelita-odbiornik xyz
+        neu = Rneu(FIrad, LAMBDArad).T.dot(sat_odb) # wektor satelita-odbiornik neu
+        az = math.degrees(math.atan2(neu[1], neu[0])) # azymut [deg]
+        print(f"SATELITA: {int(sat[0])}")
+        if az < 0:
+            az += 360
+        print(f"Azymut: {round(az, 3)} [deg]")
+        ro = np.sqrt(neu[0]**2 + neu[1]**2 + neu[2]**2) # odległość [m]
+        el = math.degrees(math.asin(neu[2]/ro)) # elewacja [deg]
+        print(f"Elewacja: {round(el, 3)} [deg]")
+
+        if el > maska:
+            satelites.append(sat[0])
+            a = [-(x-odbiornik_x)/ro, -(y-odbiornik_y)/ro, -(z-odbiornik_z)/ro, 1]
+            A.append(a)
     
-    print("--------------------------------------------------------------- \n")
+    As = np.array(A)
+    Q = np.linalg.inv(As.T.dot(As))
+    Qdiag = np.diag(Q)
 
-A = np.array(A)
-print("Macierz A: \n", A, "\n")
-Q = np.linalg.inv(A.T.dot(A))
-print("Macierz Q: \n", Q, "\n")
-Qdiag = np.diag(Q)
+    GDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2] + Qdiag[3])
+    PDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
+    TDOP = math.sqrt(Qdiag[3])
 
-GDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2] + Qdiag[3])
-PDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
-TDOP = math.sqrt(Qdiag[3])
+    Qneu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(FIrad, LAMBDArad))
+    Qneudiag = np.diag(Qneu)
 
-Qneu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(FIrad, LAMBDArad))
-print("Macierz Qneu: \n", Qneu, "\n")
-Qneudiag = np.diag(Qneu)
+    HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
+    VDOP = math.sqrt(Qneudiag[2])
 
-HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
-VDOP = math.sqrt(Qneudiag[2])
+    print("---------------------KONIEC TEJ PĘTLI 10-MINUTOWEJ------------------------ \n")
 
-print(f"GDOP: {round(GDOP, 5)}")
-print(f"PDOP: {round(PDOP, 5)}")
-print(f"TDOP: {round(TDOP, 5)}")
-print(f"HDOP: {round(HDOP, 5)}")
-print(f"VDOP: {round(VDOP, 5)}")
-
+    
+# wykres liniowy elewacji - godziny x elewacje y;
+# dobrym pomysłem usuwać łuki poniżej maski obserwacji
+    
+# wykres z liczbą widocznych satelitów (elewacja większa od maski) w zależności od czasu
+# może wykres słupkowy lepiej
+# bar chart
+    
+# wykres DOPs liniowy
+# pie chart jako dodatek może być, kołowy w zależności od wartości dops jaki procent doby
+    
+# wykres skyplot na wybraną godzinę
+# łuków nie trzeba ale położenie tak
+    
+#mapka z ruchem satelitów 
