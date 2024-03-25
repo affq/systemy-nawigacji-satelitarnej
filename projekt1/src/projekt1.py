@@ -32,7 +32,7 @@ A = []
 WEEK, SOW = get_gps_time(year,m,d,h,mnt,s) # tydzień i czas w sekundach od początku tygodnia
 
 nav, prn = get_alm_data_str(file)
-satelity = nav[:,0]<100 # tylko giepeesy
+satelity = nav[:,0]<500 # tylko giepeesy
 nav = nav[satelity,:] 
 prn = np.array(prn)[satelity]
 wiersz_nav = nav[0,:]
@@ -159,10 +159,7 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
 
     add_dop_data((t-sow0)/3600, GDOP, PDOP, HDOP, VDOP, TDOP)
 
-# wykres liniowy elewacji - godziny x elewacje y;
-# dobrym pomysłem usuwać łuki poniżej maski obserwacji
-# line chart
-
+# wykres liniowy elewacji
 df = pd.DataFrame.from_dict(satelite_data)
 df = df.stack().apply(pd.Series).reset_index()
 df.columns = ['satelita', 'czas', 'azymut', 'elewacja', 'widoczność']
@@ -181,17 +178,16 @@ for sat in df['satelita'].unique():
 fig.update_layout(
     scene=dict(
         xaxis=dict(title='czas', range=[0, 24]),
-        yaxis=dict(title='elewacja', range=[0, 90]),
+        yaxis=dict(title='elewacja'),
     ),
     title='Pozycje satelitów',
-    showlegend=True
+    showlegend=True,
+    yaxis_range=[maska, 90]
 )
 
 fig.show()
-exit()
 
-# wykres z liczbą widocznych satelitów (elewacja większa od maski) w zależności od czasu
-# może wykres słupkowy lepiej
+# wykres z liczbą widocznych satelitów w zależności od czasu
 # bar chart
 fig = go.Figure()
 fig = px.bar(x=list(satelite_data.keys()), y=[sum([1 for sat in satelite_data[time].values() if sat['visible']]) for time in dop_data.keys()], labels={'x': 'Czas [h]', 'y': 'Liczba widocznych satelitów'})
