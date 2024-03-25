@@ -3,6 +3,7 @@ from alm_module import get_alm_data_str, get_prn_number2
 from funcs import get_gps_time, flh2xyz, Rneu
 import math
 import plotly.express as px
+import plotly.graph_objects as go
 
 FI = 52 #szerokość geograficzna odbiornika
 LAMBDA = 21 #długość geograficzna odbiornika
@@ -103,6 +104,7 @@ week0 = int(week0)
 sow0 = int(sow0)
 
 satelite_data = {}
+dop_data = {}
 
 def add_sat_data(t, sat, az, el, visible):
     prn = get_prn_number2(sat)
@@ -112,9 +114,8 @@ def add_sat_data(t, sat, az, el, visible):
         satelite_data[t][prn] = {'azimuth': az, 'elevation': el, 'visible': visible}
 
 def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
-    if t not in satelite_data:
-        satelite_data[t] = {}
-    satelite_data[t] = {'geometrical': GDOP, 'position': PDOP, 'horizontal': HDOP, 'vetical': VDOP, 'time': TDOP}
+    if t not in dop_data:
+        dop_data[t] = {'GDOP': GDOP, 'PDOP': PDOP, 'HDOP': HDOP, 'VDOP': VDOP, 'TDOP': TDOP}
 
 for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     for sat in nav:
@@ -137,7 +138,7 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
         else:
             visible = False
         
-        add_sat_data(t, sat, az, el, visible)
+        add_sat_data((t-sow0)/3600, sat, az, el, visible)
     
     
     As = np.array(A)
@@ -154,19 +155,55 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
     VDOP = math.sqrt(Qneudiag[2])
 
-    add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP)
+    add_dop_data((t-sow0)/3600, GDOP, PDOP, HDOP, VDOP, TDOP)
 
 # wykres liniowy elewacji - godziny x elewacje y;
 # dobrym pomysłem usuwać łuki poniżej maski obserwacji
-# line chart    
+# line chart
+
+czasy_wykres = []
+satelity_wykres = []
+elewacje_wykres = []
+
+for czas, dane_dla_czasu in satelite_data.items():
+    for satelita, dane_satelity in dane_dla_czasu.items():
+        czasy_wykres.append(czas)
+        satelity_wykres.append(satelita)
+        print(dane_satelity)
+        elewacje_wykres.append(dane_satelity['elevation'])
+
+fig = go.Figure()
+
+for satelita in satelity_wykres:
+    elewacje_satelity = [elewacje_wykres[i] for i in range(len(elewacje_wykres)) if satelity_wykres[i] == satelita]
+    czasy_satelity = [czasy_wykres[i] for i in range(len(czasy_wykres)) if satelity_wykres[i] == satelita]
+    fig.add_trace(go.Scatter(x=czasy_satelity, y=elewacje_satelity, mode="lines", name=f"Satelita {satelita}"))
+
+fig.update_layout(title="Elewacje satelitów w zależności od czasu", xaxis_title="Czas [s]", yaxis_title="Elewacja [deg]", yaxis_range=[maska, 90])
+fig.show()
 
 # wykres z liczbą widocznych satelitów (elewacja większa od maski) w zależności od czasu
 # może wykres słupkowy lepiej
 # bar chart
-    
-# wykres DOPs liniowy
-# pie chart jako dodatek może być, kołowy w zależności od wartości dops jaki procent doby
-    
+
+fig = go.Figure()
+
+x = list(dop_data.keys())
+y = [dop_data[time]['GDOP'] for time in x]
+y_pdop = [dop_data[time]['PDOP'] for time in x]
+y_hdop = [dop_data[time]['HDOP'] for time in x]
+y_vdop = [dop_data[time]['VDOP'] for time in x]
+fig.add_trace(go.Scatter(x=x, y=y, mode="lines", name="GDOP"))
+fig.add_trace(go.Scatter(x=x, y=y_pdop, mode="lines", name="PDOP"))
+fig.add_trace(go.Scatter(x=x, y=y_hdop, mode="lines", name="HDOP"))
+fig.add_trace(go.Scatter(x=x, y=y_vdop, mode="lines", name="VDOP"))
+
+fig.update_layout(title="Dilution of Precision w zależności od czasu", xaxis_title="DOP", yaxis_title="Wartość DOP")
+fig.show()
+
+
+
+
 # wykres skyplot na wybraną godzinę
 # łuków nie trzeba ale położenie tak
     
