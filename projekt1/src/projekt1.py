@@ -1,9 +1,11 @@
 import numpy as np
-from alm_module import get_alm_data_str, get_prn_number2
+from alm_module import get_alm_data_str, get_prn_number2, create_prn_alm2
 from funcs import get_gps_time, flh2xyz, Rneu
 import math
 import plotly.express as px
 import plotly.graph_objects as go
+import pandas as pd
+import random
 
 FI = 52 #szerokość geograficzna odbiornika
 LAMBDA = 21 #długość geograficzna odbiornika
@@ -107,7 +109,7 @@ satelite_data = {}
 dop_data = {}
 
 def add_sat_data(t, sat, az, el, visible):
-    prn = get_prn_number2(sat)
+    prn = create_prn_alm2(sat)
     if t not in satelite_data:
         satelite_data[t] = {}
     if prn not in satelite_data[t]:
@@ -161,48 +163,45 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
 # dobrym pomysłem usuwać łuki poniżej maski obserwacji
 # line chart
 
-czasy_wykres = []
-satelity_wykres = []
-elewacje_wykres = []
-
-for czas, dane_dla_czasu in satelite_data.items():
-    for satelita, dane_satelity in dane_dla_czasu.items():
-        czasy_wykres.append(czas)
-        satelity_wykres.append(satelita)
-        print(dane_satelity)
-        elewacje_wykres.append(dane_satelity['elevation'])
+df = pd.DataFrame.from_dict(satelite_data)
+df = df.stack().apply(pd.Series).reset_index()
+df.columns = ['satelita', 'czas', 'azymut', 'elewacja', 'widoczność']
+print(df)
 
 fig = go.Figure()
+for sat in df['satelita'].unique():
+    sat_data = df[df['satelita'] == sat]
+    fig.add_trace(go.Scatter(
+        x=sat_data['czas'],
+        y=sat_data['elewacja'],
+        mode='lines',
+        name=f'Satelita {sat}'
+    ))
 
-for satelita in satelity_wykres:
-    elewacje_satelity = [elewacje_wykres[i] for i in range(len(elewacje_wykres)) if satelity_wykres[i] == satelita]
-    czasy_satelity = [czasy_wykres[i] for i in range(len(czasy_wykres)) if satelity_wykres[i] == satelita]
-    fig.add_trace(go.Scatter(x=czasy_satelity, y=elewacje_satelity, mode="lines", name=f"Satelita {satelita}"))
+fig.update_layout(
+    scene=dict(
+        xaxis=dict(title='czas', range=[0, 24]),
+        yaxis=dict(title='elewacja', range=[0, 90]),
+    ),
+    title='Pozycje satelitów',
+    showlegend=True
+)
 
-fig.update_layout(title="Elewacje satelitów w zależności od czasu", xaxis_title="Czas [s]", yaxis_title="Elewacja [deg]", yaxis_range=[maska, 90])
 fig.show()
+exit()
 
 # wykres z liczbą widocznych satelitów (elewacja większa od maski) w zależności od czasu
 # może wykres słupkowy lepiej
 # bar chart
-
 fig = go.Figure()
-
-x = list(dop_data.keys())
-y = [dop_data[time]['GDOP'] for time in x]
-y_pdop = [dop_data[time]['PDOP'] for time in x]
-y_hdop = [dop_data[time]['HDOP'] for time in x]
-y_vdop = [dop_data[time]['VDOP'] for time in x]
-fig.add_trace(go.Scatter(x=x, y=y, mode="lines", name="GDOP"))
-fig.add_trace(go.Scatter(x=x, y=y_pdop, mode="lines", name="PDOP"))
-fig.add_trace(go.Scatter(x=x, y=y_hdop, mode="lines", name="HDOP"))
-fig.add_trace(go.Scatter(x=x, y=y_vdop, mode="lines", name="VDOP"))
-
-fig.update_layout(title="Dilution of Precision w zależności od czasu", xaxis_title="DOP", yaxis_title="Wartość DOP")
+fig = px.bar(x=list(satelite_data.keys()), y=[sum([1 for sat in satelite_data[time].values() if sat['visible']]) for time in dop_data.keys()], labels={'x': 'Czas [h]', 'y': 'Liczba widocznych satelitów'})
 fig.show()
 
+# liniowy w zaleznosci od wartosci dopow
+# line chart
 
 
+# kolowy w zaleznosci od wartosci procentowej dop w ciagu doby
 
 # wykres skyplot na wybraną godzinę
 # łuków nie trzeba ale położenie tak

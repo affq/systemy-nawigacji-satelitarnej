@@ -137,6 +137,24 @@ def get_alm_data(file):
     nav_data[:,0] = prns
     return nav_data
 
+def create_prn_alm2(sat):
+    nsat = sat[0]
+    if 0<nsat<=37:
+        prn = 'G'+str(int(nsat)).zfill(2)
+    elif 38<=nsat<=64:
+        prn = 'R'+str(int(nsat-37)).zfill(2)
+    elif 111<=nsat<=118:
+        prn = 'Q'+str(int(nsat-110)).zfill(2)
+    elif 201<=nsat<=263:
+        prn = 'E'+str(int(nsat-200)).zfill(2)  
+    elif 264<=nsat<=310:
+        prn = 'C'+str(int(nsat-263)).zfill(2)
+    elif 311<=nsat:
+        prn = 'C'+str(int(nsat-328)).zfill(2)         
+    else: 
+        prn = 'S'+str(int(nsat)).zfill(2)
+    return prn
+
 def create_prn_alm(nav_data):
     prns = []
     for nav in nav_data:
