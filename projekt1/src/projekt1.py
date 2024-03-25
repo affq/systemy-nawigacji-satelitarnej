@@ -1,7 +1,8 @@
 import numpy as np
-from alm_module import get_alm_data_str
+from alm_module import get_alm_data_str, get_prn_number2
 from funcs import get_gps_time, flh2xyz, Rneu
 import math
+import plotly.express as px
 
 FI = 52 #szerokość geograficzna odbiornika
 LAMBDA = 21 #długość geograficzna odbiornika
@@ -101,12 +102,19 @@ week0, sow0 = get_gps_time(year,m,d,h0,mnt0,s0)
 week0 = int(week0)
 sow0 = int(sow0)
 
-As = []
-elevations = []
-azimuths = []
-DOPs = []
+satelite_data = {}
 
-# słownik?
+def add_sat_data(t, sat, az, el, visible):
+    prn = get_prn_number2(sat)
+    if t not in satelite_data:
+        satelite_data[t] = {}
+    if prn not in satelite_data[t]:
+        satelite_data[t][prn] = {'azimuth': az, 'elevation': el, 'visible': visible}
+
+def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
+    if t not in satelite_data:
+        satelite_data[t] = {}
+    satelite_data[t] = {'geometrical': GDOP, 'position': PDOP, 'horizontal': HDOP, 'vetical': VDOP, 'time': TDOP}
 
 for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     for sat in nav:
@@ -123,9 +131,14 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
         print(f"Elewacja: {round(el, 3)} [deg]")
 
         if el > maska:
-            satelites.append(sat[0])
             a = [-(x-odbiornik_x)/ro, -(y-odbiornik_y)/ro, -(z-odbiornik_z)/ro, 1]
             A.append(a)
+            visible = True
+        else:
+            visible = False
+        
+        add_sat_data(t, sat, az, el, visible)
+    
     
     As = np.array(A)
     Q = np.linalg.inv(As.T.dot(As))
@@ -141,12 +154,12 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
     VDOP = math.sqrt(Qneudiag[2])
 
-    print("---------------------KONIEC TEJ PĘTLI 10-MINUTOWEJ------------------------ \n")
+    add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP)
 
-    
 # wykres liniowy elewacji - godziny x elewacje y;
 # dobrym pomysłem usuwać łuki poniżej maski obserwacji
-    
+# line chart    
+
 # wykres z liczbą widocznych satelitów (elewacja większa od maski) w zależności od czasu
 # może wykres słupkowy lepiej
 # bar chart

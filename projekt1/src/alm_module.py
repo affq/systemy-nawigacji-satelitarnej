@@ -86,6 +86,24 @@ def read_alm(file):
     nav_data = np.array(nav_data)        
     return nav_data
 
+def get_prn_number2(sat):
+    nsat = sat[0]
+    if 0<nsat<=37:
+        prn = int(nsat)
+    elif 38<=nsat<=64:
+        prn = 100 + int(nsat-37)
+    elif 111<=nsat<=118:
+        prn = 400 + int(nsat-110)
+    elif 201<=nsat<=263:
+        prn = 200 + int(nsat-200)  
+    elif 264<=nsat<=310:
+        prn = 300 + int(nsat-263)
+    elif 311<=nsat:
+        prn = 300 + int(nsat-328)         
+    else: 
+        prn = 500 + int(nsat)
+    return prn
+
 def get_prn_number(nav_data):
     prns = []
     for nav in nav_data:
