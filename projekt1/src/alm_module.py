@@ -165,8 +165,6 @@ def create_prn_alm(nav_data):
     return prns
 
 def get_alm_data_str(alm_file):
-    nav_data = read_alm(alm_file)
-    prn = get_prn_number(nav_data)
-    nav_data[:,0] = prn
-    prns = create_prn_alm(nav_data) 
-    return nav_data, prns    
+    alm_data = read_alm(alm_file)
+    prns = create_prn_alm(alm_data) 
+    return alm_data, prns
