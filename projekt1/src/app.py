@@ -83,7 +83,7 @@ def add_sat_data(t, sat, az, el, visible):
     prn = create_prn_alm2(sat)
     system = check_gnss(prn)
     delta = datetime.timedelta(seconds=t)
-    t = startdate + delta
+    t = st.session_state.startdate + delta
     if t not in satelite_data:
         satelite_data[t] = {}
     if system not in satelite_data[t]:
@@ -92,7 +92,7 @@ def add_sat_data(t, sat, az, el, visible):
 
 def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
     delta = datetime.timedelta(seconds=t)
-    t = startdate + delta
+    t = st.session_state.startdate + delta
     if t not in dop_data:
         dop_data[t] = {'GDOP': GDOP, 'PDOP': PDOP, 'HDOP': HDOP, 'VDOP': VDOP, 'TDOP': TDOP}
 
@@ -101,18 +101,22 @@ OMEGA_E = 7.2921151467e-5
 
 file = r'C:\Users\adria\Desktop\systemy-nawigacji-satelitarnej\projekt1\Almanac2024053.alm'
 
-FI = 52 #szerokość geograficzna odbiornika
-LAMBDA = 21 #długość geograficzna odbiornika
-H = 100 #wysokość odbiornika w metrach
-maska = 10 # maska elewacji w stopniach
-year, m, d = 2024, 2, 29
-h0, mnt0, s0 = 0, 0, 0
-startdate = datetime.datetime(year, m, d, h0, mnt0, s0)
+if 'FI' not in st.session_state:
+    st.session_state.FI = 52
+if 'LAMBDA' not in st.session_state:
+    st.session_state.LAMBDA = 21
+if 'H' not in st.session_state:
+    st.session_state.H = 100
+if 'maska' not in st.session_state:
+    st.session_state.maska = 10
+if 'startdate' not in st.session_state:
+    st.session_state.startdate = datetime.datetime(2024, 2, 29, 0, 0, 0)
+    
 # +18s bo sekundy przestępne
 
-FIrad = math.radians(FI)
-LAMBDArad = math.radians(LAMBDA)
-odbiornik_x, odbiornik_y, odbiornik_z = flh2xyz(FIrad, LAMBDArad, H) # współrzędne odbiornika w układzie xyz
+FIrad = math.radians(st.session_state.FI)
+LAMBDArad = math.radians(st.session_state.LAMBDA)
+odbiornik_x, odbiornik_y, odbiornik_z = flh2xyz(FIrad, LAMBDArad, st.session_state.H) # współrzędne odbiornika w układzie xyz
 
 A = []
 
@@ -122,12 +126,13 @@ nav = nav[satelity,:]
 prn = np.array(prn)[satelity]
 wiersz_nav = nav[0,:]
 
-week0, sow0 = get_gps_time(year,m,d,h0,mnt0,s0)
+week0, sow0 = get_gps_time(st.session_state.startdate.year, st.session_state.startdate.month, st.session_state.startdate.day, st.session_state.startdate.hour, st.session_state.startdate.minute, st.session_state.startdate.second)
 week0 = int(week0)
 sow0 = int(sow0)
 
 satelite_data = {}
 dop_data = {}
+lista_danych = []
 
 for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     A = []
@@ -142,7 +147,7 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
         ro = np.sqrt(neu[0]**2 + neu[1]**2 + neu[2]**2) # odległość [m]
         el = math.degrees(math.asin(neu[2]/ro)) # elewacja [deg]
 
-        if el > maska:
+        if el > st.session_state.maska:
             a = [-(x-odbiornik_x)/ro, -(y-odbiornik_y)/ro, -(z-odbiornik_z)/ro, 1]
             A.append(a)
             visible = True
@@ -159,18 +164,13 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     PDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
     TDOP = math.sqrt(Qdiag[3])
 
-    Qneu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(FIrad, LAMBDArad))
+    Qneu = Rneu(math.radians(st.session_state.FI), math.radians(st.session_state.LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(FIrad, LAMBDArad))
     Qneudiag = np.diag(Qneu)
 
     HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
     VDOP = math.sqrt(Qneudiag[2])
 
     add_dop_data(t-sow0, GDOP, PDOP, HDOP, VDOP, TDOP)
-
-
-lista_danych = []
-
-
 
 for czas, systemy in satelite_data.items():
     for system, satelity in systemy.items():
@@ -202,7 +202,7 @@ elev.update_layout(
     ),
     title='Pozycje satelitów',
     showlegend=True,
-    yaxis_range=[maska, 90]
+    yaxis_range=[st.session_state.maska, 90]
 )
 
 visible_sat = df[df['visible'] == True]
@@ -222,7 +222,7 @@ dop.update_layout(title='Wykres DOP', xaxis_title='Czas', yaxis_title='Wartość
 
 skyplot = px.scatter_polar(
     df, r='elewacja', theta='azymut',
-    color='system', animation_frame='czas', range_r=[maska, 90]
+    color='system', animation_frame='czas', range_r=[st.session_state.maska, 90]
 )
 
 def show_chart(key):
@@ -235,27 +235,19 @@ def show_chart(key):
     elif key == 'skyplot':
         st.plotly_chart(skyplot)
 
-st.title('Systemy nawigacji satelitarnej - projekt 1')
+st.title('sns - projekt 1 :satellite:')
 
 choose = st.selectbox('Wybierz wykres:', ['wykres elewacji', 'widoczne satelity', 'wykres dop-ów', 'skyplot'])
 print(choose)
 show_chart(choose)
 
-
-if 'satelite_data' not in st.session_state:
-    st.session_state.satelite_data = satelite_data
-if 'dop_data' not in st.session_state:
-    st.session_state.dop_data = dop_data
-if 'FI' not in st.session_state:
-    st.session_state.FI = FI
-if 'LAMBDA' not in st.session_state:
-    st.session_state.LAMBDA = LAMBDA
-if 'H' not in st.session_state:
-    st.session_state.H = H
-if 'maska' not in st.session_state:
-    st.session_state.maska = maska
-if 'startdate' not in st.session_state:
-    st.session_state.startdate = startdate
+def save_values():
+    st.session_state.FI = latitude
+    st.session_state.LAMBDA = longitude
+    st.session_state.H = height
+    st.session_state.maska = mask
+    st.session_state.startdate = datetime.datetime.combine(date, time)
+    st.experimental_rerun()
 
 
 st.sidebar.header('Parametry wejściowe')
@@ -268,4 +260,4 @@ longitude = st.sidebar.number_input('Długość geograficzna [°]:', min_value=-
 height = st.sidebar.number_input('Wysokość [m]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.H))
 mask = st.sidebar.number_input('Maska elewacji [°]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.maska))
 
-submit = st.sidebar.button('Oblicz', use_container_width=True, on_click=lambda: st.rerun())
+submit = st.sidebar.button('Oblicz', use_container_width=True, on_click=save_values)
