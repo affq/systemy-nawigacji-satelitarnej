@@ -94,7 +94,7 @@ def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
-file = r'C:\Users\adria\Desktop\systemy-nawigacji-satelitarnej\projekt1\Almanac2024053.alm'
+file = r'projekt1\Almanac2024053.alm'
 
 FI = 52 #szerokość geograficzna odbiornika
 LAMBDA = 21 #długość geograficzna odbiornika

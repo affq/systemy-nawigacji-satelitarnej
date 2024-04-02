@@ -97,7 +97,7 @@ def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
-file = r'C:\Users\adria\Desktop\systemy-nawigacji-satelitarnej\projekt1\Almanac2024053.alm'
+file = r'projekt1\Almanac2024053.alm'
 
 if 'FI' not in st.session_state:
     st.session_state.FI = 52
@@ -116,8 +116,6 @@ FIrad = math.radians(st.session_state.FI)
 LAMBDArad = math.radians(st.session_state.LAMBDA)
 odbiornik_x, odbiornik_y, odbiornik_z = flh2xyz(FIrad, LAMBDArad, st.session_state.H) # współrzędne odbiornika w układzie xyz
 
-A = []
-
 nav, prn = get_alm_data_str(file)
 satelity = nav[:,0]<500
 nav = nav[satelity,:] 
@@ -128,6 +126,7 @@ week0, sow0 = get_gps_time(st.session_state.startdate.year, st.session_state.sta
 week0 = int(week0)
 sow0 = int(sow0)
 
+A = []
 satelite_data = {}
 dop_data = {}
 lista_danych = []
@@ -235,8 +234,7 @@ def show_chart(key):
 
 st.title('sns - projekt 1 :satellite:')
 
-choose = st.selectbox('Wybierz wykres:', ['wykres elewacji', 'widoczne satelity', 'wykres dop-ów', 'skyplot'])
-print(choose)
+choose = st.selectbox('wybierz wykres:', ['wykres elewacji', 'widoczne satelity', 'wykres dop-ów', 'skyplot'])
 show_chart(choose)
 
 def save_values():
@@ -248,14 +246,14 @@ def save_values():
     st.experimental_rerun()
 
 
-st.sidebar.header('Parametry wejściowe')
+st.sidebar.header('parametry wejściowe')
 
-date = st.sidebar.date_input('Data :', format='DD.MM.YYYY', value=st.session_state.startdate.date())
-time = st.sidebar.time_input('Godzina:', step=3600, value=st.session_state.startdate.time())
+date = st.sidebar.date_input('data:', format='DD.MM.YYYY', value=st.session_state.startdate.date())
+time = st.sidebar.time_input('godzina:', step=3600, value=st.session_state.startdate.time())
 
-latitude = st.sidebar.number_input('Szerokość geograficzna [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=float(st.session_state.FI))
-longitude = st.sidebar.number_input('Długość geograficzna [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=float(st.session_state.LAMBDA))
-height = st.sidebar.number_input('Wysokość [m]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.H))
-mask = st.sidebar.number_input('Maska elewacji [°]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.maska))
+latitude = st.sidebar.number_input('szerokość geograficzna [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=float(st.session_state.FI))
+longitude = st.sidebar.number_input('długość geograficzna [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=float(st.session_state.LAMBDA))
+height = st.sidebar.number_input('wysokość [m]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.H))
+mask = st.sidebar.number_input('maska elewacji [°]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.maska))
 
-submit = st.sidebar.button('Oblicz', use_container_width=True, on_click=save_values)
+submit = st.sidebar.button('oblicz', use_container_width=True, on_click=save_values)
