@@ -91,6 +91,8 @@ def add_sat_data(t, sat, az, el, visible):
     satelite_data[t][system][prn] = {'azymut': az, 'elewacja': el, 'visible': visible}
 
 def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
+    delta = datetime.timedelta(seconds=t)
+    t = startdate + delta
     if t not in dop_data:
         dop_data[t] = {'GDOP': GDOP, 'PDOP': PDOP, 'HDOP': HDOP, 'VDOP': VDOP, 'TDOP': TDOP}
 
