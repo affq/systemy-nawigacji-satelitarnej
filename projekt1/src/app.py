@@ -241,14 +241,31 @@ choose = st.selectbox('Wybierz wykres:', ['wykres elewacji', 'widoczne satelity'
 print(choose)
 show_chart(choose)
 
+
+if 'satelite_data' not in st.session_state:
+    st.session_state.satelite_data = satelite_data
+if 'dop_data' not in st.session_state:
+    st.session_state.dop_data = dop_data
+if 'FI' not in st.session_state:
+    st.session_state.FI = FI
+if 'LAMBDA' not in st.session_state:
+    st.session_state.LAMBDA = LAMBDA
+if 'H' not in st.session_state:
+    st.session_state.H = H
+if 'maska' not in st.session_state:
+    st.session_state.maska = maska
+if 'startdate' not in st.session_state:
+    st.session_state.startdate = startdate
+
+
 st.sidebar.header('Parametry wejściowe')
 
-date = st.sidebar.date_input('Data :', value=p1.startdate, format='DD.MM.YYYY')
-time = st.sidebar.time_input('Godzina:', step=3600, value=p1.startdate.time())
+date = st.sidebar.date_input('Data :', format='DD.MM.YYYY', value=st.session_state.startdate.date())
+time = st.sidebar.time_input('Godzina:', step=3600, value=st.session_state.startdate.time())
 
-latitude = st.sidebar.number_input('Szerokość geograficzna [°]:', value=float(p1.FI), min_value=-90.0, max_value=90.0, format="%.6f", step=1.0)
-longitude = st.sidebar.number_input('Długość geograficzna [°]:', value=float(p1.LAMBDA), min_value=-180.0, max_value=180.0, format="%.6f", step=1.0)
-height = st.sidebar.number_input('Wysokość [m]:', value=float(p1.H), min_value=0.0, format="%.2f", step=1.0)
-mask = st.sidebar.number_input('Maska elewacji [°]:', value=float(p1.maska), min_value=0.0, format="%.2f", step=1.0)
+latitude = st.sidebar.number_input('Szerokość geograficzna [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=float(st.session_state.FI))
+longitude = st.sidebar.number_input('Długość geograficzna [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=float(st.session_state.LAMBDA))
+height = st.sidebar.number_input('Wysokość [m]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.H))
+mask = st.sidebar.number_input('Maska elewacji [°]:', min_value=0.0, format="%.2f", step=1.0, value=float(st.session_state.maska))
 
-submit = st.sidebar.button('Oblicz', use_container_width=True, on_click=lambda: st.experimental_rerun())
+submit = st.sidebar.button('Oblicz', use_container_width=True, on_click=lambda: st.rerun())
