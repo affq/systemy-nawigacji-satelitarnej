@@ -1,8 +1,6 @@
 import streamlit as st
-import projekt1 as p1
 from funcs import flh2xyz, get_gps_time, Rneu
 from alm_module import get_alm_data_str, create_prn_alm2
-from streamlit_option_menu import option_menu
 import plotly.express as px
 import plotly.graph_objects as go
 import datetime
