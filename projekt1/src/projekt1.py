@@ -7,42 +7,23 @@ import plotly.graph_objects as go
 import pandas as pd
 import datetime
 
-FI = 52 #szerokość geograficzna odbiornika
-LAMBDA = 21 #długość geograficzna odbiornika
-H = 100 #wysokość odbiornika w metrach
-
-FIrad = math.radians(FI)
-LAMBDArad = math.radians(LAMBDA)
-
-year, m, d = 2024, 2, 29
-h, mnt, s = 12, 0, 0
-
-# +18s bo sekundy przestępne
-
-MI = 3.986005e14
-OMEGA_E = 7.2921151467e-5
-
-file = r'C:\Users\adria\Desktop\systemy-nawigacji-satelitarnej\projekt1\Almanac2024053.alm'
-
-maska = 10 # maska elewacji w stopniach
-
-A = []
-
-WEEK, SOW = get_gps_time(year,m,d,h,mnt,s) # tydzień i czas w sekundach od początku tygodnia
-
-
-# In[154]:
-
-
-nav, prn = get_alm_data_str(file)
-satelity = nav[:,0]<500
-nav = nav[satelity,:] 
-prn = np.array(prn)[satelity]
-wiersz_nav = nav[0,:]
-
-
-# In[155]:
-
+def check_gnss(prn):
+    system = ''
+    if prn[0] == 'G':
+        system = 'GPS'
+    elif prn[0] == 'R':
+        system = 'GLONASS'
+    elif prn[0] == 'E':
+        system = 'Galileo'
+    elif prn[0] == 'C':
+        system = 'BeiDou'
+    elif prn[0] == 'Q':
+        system = 'QZSS'
+    elif prn[0] == 'S':
+        system = 'SBAS'
+    else:
+        system = 'Unknown'
+    return system
 
 def satpos(sow, week, wiersz_nav):
     e = wiersz_nav[2] # ekscentryczność orbity (mimośród)
@@ -95,43 +76,6 @@ def satpos(sow, week, wiersz_nav):
 
     return x, y, z
 
-
-# In[156]:
-
-
-odbiornik_x, odbiornik_y, odbiornik_z = flh2xyz(FIrad, LAMBDArad, H) # współrzędne odbiornika w układzie xyz
-
-h0, mnt0, s0 = 0, 0, 0
-week0, sow0 = get_gps_time(year,m,d,h0,mnt0,s0)
-startdate = datetime.datetime(year, m, d, h0, mnt0, s0)
-week0 = int(week0)
-sow0 = int(sow0)
-
-satelite_data = {}
-dop_data = {}
-
-
-# In[157]:
-
-
-def check_gnss(prn):
-    system = ''
-    if prn[0] == 'G':
-        system = 'GPS'
-    elif prn[0] == 'R':
-        system = 'GLONASS'
-    elif prn[0] == 'E':
-        system = 'Galileo'
-    elif prn[0] == 'C':
-        system = 'BeiDou'
-    elif prn[0] == 'Q':
-        system = 'QZSS'
-    elif prn[0] == 'S':
-        system = 'SBAS'
-    else:
-        system = 'Unknown'
-    return system
-
 def add_sat_data(t, sat, az, el, visible):
     prn = create_prn_alm2(sat)
     system = check_gnss(prn)
@@ -142,14 +86,43 @@ def add_sat_data(t, sat, az, el, visible):
     if system not in satelite_data[t]:
         satelite_data[t][system] = {}
     satelite_data[t][system][prn] = {'azymut': az, 'elewacja': el, 'visible': visible}
-        
+
 def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
     if t not in dop_data:
         dop_data[t] = {'GDOP': GDOP, 'PDOP': PDOP, 'HDOP': HDOP, 'VDOP': VDOP, 'TDOP': TDOP}
 
+MI = 3.986005e14
+OMEGA_E = 7.2921151467e-5
 
-# In[158]:
+file = r'C:\Users\adria\Desktop\systemy-nawigacji-satelitarnej\projekt1\Almanac2024053.alm'
 
+FI = 52 #szerokość geograficzna odbiornika
+LAMBDA = 21 #długość geograficzna odbiornika
+H = 100 #wysokość odbiornika w metrach
+maska = 10 # maska elewacji w stopniach
+year, m, d = 2024, 2, 29
+h0, mnt0, s0 = 0, 0, 0
+startdate = datetime.datetime(year, m, d, h0, mnt0, s0)
+# +18s bo sekundy przestępne
+
+FIrad = math.radians(FI)
+LAMBDArad = math.radians(LAMBDA)
+odbiornik_x, odbiornik_y, odbiornik_z = flh2xyz(FIrad, LAMBDArad, H) # współrzędne odbiornika w układzie xyz
+
+A = []
+
+nav, prn = get_alm_data_str(file)
+satelity = nav[:,0]<500
+nav = nav[satelity,:] 
+prn = np.array(prn)[satelity]
+wiersz_nav = nav[0,:]
+
+week0, sow0 = get_gps_time(year,m,d,h0,mnt0,s0)
+week0 = int(week0)
+sow0 = int(sow0)
+
+satelite_data = {}
+dop_data = {}
 
 for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     A = []
@@ -190,10 +163,9 @@ for t in range (sow0, sow0 + 24 * 60 * 60, 600):
     add_dop_data(t-sow0, GDOP, PDOP, HDOP, VDOP, TDOP)
 
 
-# In[159]:
-
-
 lista_danych = []
+
+
 
 for czas, systemy in satelite_data.items():
     for system, satelity in systemy.items():
@@ -208,10 +180,6 @@ for czas, systemy in satelite_data.items():
 
 df = pd.DataFrame(lista_danych)
 df
-
-
-# In[160]:
-
 
 #wykres elewacji satelitów
 
@@ -235,24 +203,16 @@ fig.update_layout(
     yaxis_range=[maska, 90]
 )
 
-
-# In[161]:
-
-
 visible_sat = df[df['visible'] == True]
 visible_sat = visible_sat.groupby(['czas', 'system']).agg(liczba_widocznych=('visible', 'sum'))
 visible_sat = visible_sat.reset_index()
 fig = px.bar(visible_sat, x='czas', y='liczba_widocznych', color="system", title='Liczba widocznych satelitów w zależności od czasu') 
 
 
-# In[162]:
-
-
 # wykres liniowy GDOP, PDOP, HDOP, VDOP, TDOP w zależności od czasu
 dops_df = pd.DataFrame(dop_data).T.reset_index()
 dops_df = dops_df.rename(columns={'index': 'czas'})
 dops_df = pd.melt(dops_df, id_vars=['czas'], value_vars=['GDOP', 'PDOP', 'HDOP', 'VDOP', 'TDOP'], var_name='DOP', value_name='wartość')
-
 
 
 import plotly.express as px
