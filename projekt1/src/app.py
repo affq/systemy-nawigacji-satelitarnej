@@ -97,7 +97,7 @@ def add_dop_data(t, GDOP, PDOP, HDOP, VDOP, TDOP):
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
-file = r'projekt1\Almanac2024053.alm'
+file = r'projekt1/Almanac2024053.alm'
 
 if 'FI' not in st.session_state:
     st.session_state.FI = 52
