@@ -7,6 +7,8 @@ zdrowe = nav[:, 30] == 0
 nav = nav[zdrowe,:]
 inav = inav[zdrowe]
 
+def satpos_fromrinex():
+    pass
 
 # wejście
 data_obliczen = [2024, 3, 5, 11, 15, 0]
