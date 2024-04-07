@@ -185,7 +185,7 @@ def calculate_dops_for_selected_systems():
         except:
             continue
         delta = datetime.timedelta(seconds=t)
-        time = startdate + delta
+        time = startdate + delta - datetime.timedelta(seconds=sow0)
         if time not in dop_data:
             dop_data[time] = {'GDOP': GDOP, 'PDOP': PDOP, 'HDOP': HDOP, 'VDOP': VDOP, 'TDOP': TDOP}
     time = []
@@ -209,9 +209,9 @@ st.title('sns - projekt 1 :satellite:')
 st.sidebar.header('parametry wejściowe')
 date = st.sidebar.date_input('data początkowa:', format='DD.MM.YYYY', value=datetime.date(2024, 2, 29))
 time = st.sidebar.time_input('godzina początkowa:', step=3600, value=datetime.time(0, 0))
-latitude = st.sidebar.number_input('szerokość geograficzna miejsca obserwacji [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=52.0)
-longitude = st.sidebar.number_input('długość geograficzna miejsca obserwacji [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=21.0)
-height = st.sidebar.number_input('wysokość miejsca obserwacji [m]:', min_value=0.0, format="%.2f", step=1.0, value=100.0)
+latitude = st.sidebar.number_input('szerokość geograficzna odbiornika [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=52.0)
+longitude = st.sidebar.number_input('długość geograficzna odbiornika [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=21.0)
+height = st.sidebar.number_input('wysokość odbiornika [m]:', min_value=0.0, format="%.2f", step=1.0, value=100.0)
 period = st.sidebar.number_input('długość obserwacji [h]:', min_value=1, max_value=24, step=6, value=24)
 interval = st.sidebar.number_input('interwał [min]:', min_value=1, max_value=60, step=1, value=10)
 mask = st.sidebar.number_input('maska elewacji [°]:', min_value=0.0, format="%.2f", step=1.0, value=10.0)
