@@ -223,7 +223,7 @@ choose = st.selectbox('wybierz wykres:', ['wykres liniowy elewacji', 'wykres lic
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
-file = r'Almanac2024053.alm'
+file = r'projekt1\Almanac2024053.alm'
 
 FI = latitude
 LAMBDA = longitude
