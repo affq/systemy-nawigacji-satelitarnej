@@ -147,8 +147,10 @@ def dop_category(gdop):
 def calculate_dops_for_selected_systems():
     dop_data = {}
     chosen_systems = get_chosen_systems()
-    print(chosen_systems)
-    for t in range (sow0, sow0 + 24 * 60 * 60, 600):
+    if (len(chosen_systems) == 0):
+        st.warning('wybierz co najmniej jeden z systemów GNSS')
+        return [], [], [], [], [], [], []
+    for t in range (sow0, sow0 + period * 60 * 60, interval*60):
         A = []
         As = []
         for sat in nav:
@@ -166,23 +168,22 @@ def calculate_dops_for_selected_systems():
             if el > maska:
                 a = [-(x-odbiornik_x)/ro, -(y-odbiornik_y)/ro, -(z-odbiornik_z)/ro, 1]
                 A.append(a)
-                visible = True
-            else:
-                visible = False
         As = np.array(A)
         Q = np.linalg.inv(As.T.dot(As))
         Qdiag = np.diag(Q)
+        
+        try:
+            GDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2] + Qdiag[3])
+            PDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
+            TDOP = math.sqrt(Qdiag[3])
 
-        GDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2] + Qdiag[3])
-        PDOP = math.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
-        TDOP = math.sqrt(Qdiag[3])
+            Qneu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(FIrad, LAMBDArad))
+            Qneudiag = np.diag(Qneu)
 
-        Qneu = Rneu(math.radians(FI), math.radians(LAMBDA)).T.dot(Q[0:3,0:3]).dot(Rneu(FIrad, LAMBDArad))
-        Qneudiag = np.diag(Qneu)
-
-        HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
-        VDOP = math.sqrt(Qneudiag[2])
-
+            HDOP = math.sqrt(Qneudiag[0] + Qneudiag[1])
+            VDOP = math.sqrt(Qneudiag[2])
+        except:
+            continue
         delta = datetime.timedelta(seconds=t)
         time = startdate + delta
         if time not in dop_data:
@@ -206,11 +207,13 @@ def calculate_dops_for_selected_systems():
 
 st.title('sns - projekt 1 :satellite:')
 st.sidebar.header('parametry wejściowe')
-date = st.sidebar.date_input('data:', format='DD.MM.YYYY', value=datetime.date(2024, 2, 29))
-time = st.sidebar.time_input('godzina:', step=3600, value=datetime.time(0, 0))
-latitude = st.sidebar.number_input('szerokość geograficzna [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=52.0)
-longitude = st.sidebar.number_input('długość geograficzna [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=21.0)
-height = st.sidebar.number_input('wysokość [m]:', min_value=0.0, format="%.2f", step=1.0, value=100.0)
+date = st.sidebar.date_input('data początkowa:', format='DD.MM.YYYY', value=datetime.date(2024, 2, 29))
+time = st.sidebar.time_input('godzina początkowa:', step=3600, value=datetime.time(0, 0))
+latitude = st.sidebar.number_input('szerokość geograficzna miejsca obserwacji [°]:', min_value=-90.0, max_value=90.0, format="%.6f", step=1.0, value=52.0)
+longitude = st.sidebar.number_input('długość geograficzna miejsca obserwacji [°]:', min_value=-180.0, max_value=180.0, format="%.6f", step=1.0, value=21.0)
+height = st.sidebar.number_input('wysokość miejsca obserwacji [m]:', min_value=0.0, format="%.2f", step=1.0, value=100.0)
+period = st.sidebar.number_input('długość obserwacji [h]:', min_value=1, max_value=24, step=6, value=24)
+interval = st.sidebar.number_input('interwał [min]:', min_value=1, max_value=60, step=1, value=10)
 mask = st.sidebar.number_input('maska elewacji [°]:', min_value=0.0, format="%.2f", step=1.0, value=10.0)
 gps_check = st.sidebar.checkbox('GPS', value=True)
 glonass_check = st.sidebar.checkbox('GLONASS', value=True, key='GLONASS')
@@ -223,13 +226,16 @@ choose = st.selectbox('wybierz wykres:', ['wykres liniowy elewacji', 'wykres lic
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
-file = r'projekt1/Almanac2024053.alm'
+# file = r'projekt1/Almanac2024053.alm'
+file = r'projekt1\Almanac2024053.alm'
 
 FI = latitude
 LAMBDA = longitude
 H = height
 maska = mask
 startdate = datetime.datetime.combine(date, time)
+interval = interval
+period = period
 
 FIrad = math.radians(FI)
 LAMBDArad = math.radians(LAMBDA)
@@ -250,7 +256,7 @@ satelite_data = {}
 dop_data = {}
 lista_danych = []
 
-for t in range (sow0, sow0 + 24 * 60 * 60, 600):
+for t in range (sow0, sow0 + period * 60 * 60, interval*60):
     A = []
     As = []
     for sat in nav:
@@ -303,113 +309,76 @@ df = pd.DataFrame(lista_danych)
 
 hover_style = dict(
     font_size=16,
-    font_family='Helvetica'
+    font_family='Candara'
 )
-
-system_colors = {
-    'GPS': '#8ace31',
-    'GLONASS': '#d24200',
-    'Galileo': '#00a0dc',
-    'BeiDou': '#fffa00',
-    'QZSS': '#6464ff',
-    'SBAS': 'gray',
-}
-
-elev = go.Figure()
-for system in df['system'].unique():
-    if system == 'GPS' and gps_check == False:
-        continue
-    if system == 'GLONASS' and glonass_check == False:
-        continue
-    if system == 'Galileo' and galileo_check == False:
-        continue
-    if system == 'BeiDou' and beidou_check == False:
-        continue
-    if system == 'QZSS' and qzss_check == False:
-        continue
-    if system == 'SBAS' and sbas_check == False:
-        continue
-    system_data = df[df['system'] == system]
-    for sat in system_data['satelita'].unique():
-        sat_data = system_data[system_data['satelita'] == sat]
-        elev.add_trace(go.Scatter(
-            x=sat_data['czas'],
-            y=sat_data['elewacja'],
-            mode='lines',
-            name=f'{sat}',
-            hovertemplate='czas: %{x} <br>elewacja: %{y}°',
-            hoverlabel=hover_style,
-        ))
-
-elev.update_layout(
-    scene=dict(
-        xaxis=dict(title='czas', range=[0, 24]),
-        yaxis=dict(title='elewacja'),
-    ),
-    showlegend=True,
-    yaxis_range=[maska, 90],
-    yaxis_title='elewacja [°]',
-    title='elewacja satelitów w zależności od czasu'
-)
-
-#wykres 2
-visible_sat = df[df['visible'] == True]
-visible_sat = visible_sat.groupby(['czas', 'system']).agg(liczba_widocznych=('visible', 'sum'))
-visible_sat = visible_sat.reset_index()
-if gps_check == False:
-    visible_sat = visible_sat[visible_sat['system'] != 'GPS']
-if glonass_check == False:
-    visible_sat = visible_sat[visible_sat['system'] != 'GLONASS']
-if galileo_check == False:
-    visible_sat = visible_sat[visible_sat['system'] != 'Galileo']
-if beidou_check == False:
-    visible_sat = visible_sat[visible_sat['system'] != 'BeiDou']
-if qzss_check == False:
-    visible_sat = visible_sat[visible_sat['system'] != 'QZSS']
-if sbas_check == False:
-    visible_sat = visible_sat[visible_sat['system'] != 'SBAS']
-vis = px.bar(visible_sat, x='czas', y='liczba_widocznych', color="system", title='liczba widocznych satelitów w zależności od czasu', labels={'czas': 'czas', 'liczba_widocznych': 'liczba widocznych satelitów'})
-vis.update_layout(
-    hoverlabel=hover_style
-)
-for system, color in system_colors.items():
-    vis.for_each_trace(lambda t: t.update(marker_color=color) if t.name == system else ())
-
-# wykres 4
-selected_systems = get_chosen_systems()
-filtered_df = df[df['system'].isin(selected_systems)]
-
-skyplot = px.scatter_polar(
-    filtered_df, r='elewacja', theta='azymut',
-    color='system', animation_frame='czas', range_r=[maska, 90],
-    hover_data={'czas': False, 'system': True, 'satelita': False},
-    hover_name='satelita'
-)
-
-# wykres 5
-r = 6378137
-u, v = np.mgrid[0:(2 * np.pi+0.1):0.2, -np.pi/2:np.pi/2:0.2]
-x = r*np.cos(v) * np.cos(u)
-y = r*np.cos(v) * np.sin(u)
-z = r*np.sin(v)
-plot3d = go.Figure()
-plot3d.add_trace(go.Surface(x=x, y=y, z=z, colorscale='blues'))
-plot3d.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
-                             aspectmode='manual'))
 
 if choose == 'wykres liniowy elewacji':
+    elev = go.Figure()
+    chosen_systems = get_chosen_systems()
+    if chosen_systems == []:
+        st.warning('wybierz co najmniej jeden z systemów GNSS!')
+        st.stop()
+    for system in df['system'].unique():
+        if system not in chosen_systems:
+            continue
+        system_data = df[df['system'] == system]
+        for sat in system_data['satelita'].unique():
+            sat_data = system_data[system_data['satelita'] == sat]
+            elev.add_trace(go.Scatter(
+                x=sat_data['czas'],
+                y=sat_data['elewacja'],
+                mode='lines',
+                name=f'{sat}',
+                hovertemplate='czas: %{x} <br>elewacja: %{y}°',
+                hoverlabel=hover_style,
+            ))
+    elev.update_layout(
+        scene=dict(
+            xaxis=dict(title='czas', range=[0, 24]),
+            yaxis=dict(title='elewacja'),
+        ),
+        showlegend=True,
+        yaxis_range=[maska, 90],
+        yaxis_title='elewacja [°]',
+        title='elewacja satelitów w zależności od czasu'
+    )
     st.plotly_chart(elev)
 elif choose == 'wykres liczby widocznych satelitów':
+    visible_sat = df[df['visible'] == True]
+    visible_sat = visible_sat.groupby(['czas', 'system']).agg(liczba_widocznych=('visible', 'sum'))
+    visible_sat = visible_sat.reset_index()
+    chosen_systems = get_chosen_systems()
+    if chosen_systems == []:
+        st.warning('wybierz co najmniej jeden z systemów GNSS!')
+        st.stop()
+    if gps_check == False:
+        visible_sat = visible_sat[visible_sat['system'] != 'GPS']
+    if glonass_check == False:
+        visible_sat = visible_sat[visible_sat['system'] != 'GLONASS']
+    if galileo_check == False:
+        visible_sat = visible_sat[visible_sat['system'] != 'Galileo']
+    if beidou_check == False:
+        visible_sat = visible_sat[visible_sat['system'] != 'BeiDou']
+    if qzss_check == False:
+        visible_sat = visible_sat[visible_sat['system'] != 'QZSS']
+    if sbas_check == False:
+        visible_sat = visible_sat[visible_sat['system'] != 'SBAS']
+    vis = px.bar(visible_sat, x='czas', y='liczba_widocznych', color="system", title='liczba widocznych satelitów w zależności od czasu', labels={'czas': 'czas', 'liczba_widocznych': 'liczba widocznych satelitów'})
+    vis.update_layout(
+        hoverlabel=hover_style
+    )
     st.plotly_chart(vis)
 elif choose == 'wykresy DOPów':
     time, GDOP, PDOP, HDOP, VDOP, TDOP, category = calculate_dops_for_selected_systems()
+    if len(time) == 0:
+        st.stop()
     dop = go.Figure()
     dop.add_trace(go.Scatter(x=time, y=GDOP, mode='lines', name='GDOP'))
     dop.add_trace(go.Scatter(x=time, y=PDOP, mode='lines', name='PDOP'))
     dop.add_trace(go.Scatter(x=time, y=HDOP, mode='lines', name='HDOP'))
     dop.add_trace(go.Scatter(x=time, y=VDOP, mode='lines', name='VDOP'))
     dop.add_trace(go.Scatter(x=time, y=TDOP, mode='lines', name='TDOP'))
-    dop.update_layout(title='wykres liniowy DOPów w zależności od czasu')
+    dop.update_layout(title='wykres liniowy DOPów w zależności od czasu', yaxis_title='DOP', hoverlabel=hover_style)
     st.plotly_chart(dop)
 
     cat = px.pie(names=['idealne', 'znakomite', 'dobre', 'umiarkowane', 'słabe', 'złe'], values=[category.count('idealne'), category.count('znakomite'), category.count('dobre'), category.count('umiarkowane'), category.count('słabe'), category.count('złe')], title='warunki pomiaru', labels={'names': 'kategoria', 'values': 'liczba'}, color_discrete_sequence=px.colors.sequential.Aggrnyl)
@@ -422,13 +391,36 @@ elif choose == 'wykresy DOPów':
     st.caption('umiarkowane: 4 <= GDOP < 7')
     st.caption('słabe: 7 <= GDOP < 9')
     st.caption('złe: GDOP >= 9')
-
 elif choose == 'skyplot animacja':
+    selected_systems = get_chosen_systems()
+    if selected_systems == []:
+        st.warning('wybierz co najmniej jeden z systemów GNSS!')
+        st.stop()
+    filtered_df = df[df['system'].isin(selected_systems)]
+    skyplot = px.scatter_polar(
+        filtered_df, r='elewacja', theta='azymut',
+        color='system', animation_frame='czas', range_r=[maska, 90],
+        hover_data={'czas': False, 'system': True, 'satelita': False},
+        hover_name='satelita'
+    )
     st.plotly_chart(skyplot)
 elif choose == 'wykres 3d ruchu satelity':
+    r = 6378137
+    u, v = np.mgrid[0:(2 * np.pi+0.1):0.2, -np.pi/2:np.pi/2:0.2]
+    x = r*np.cos(v) * np.cos(u)
+    y = r*np.cos(v) * np.sin(u)
+    z = r*np.sin(v)
+    plot3d = go.Figure()
+    plot3d.add_trace(go.Surface(x=x, y=y, z=z, colorscale='blues'))
+    plot3d.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1),
+                                aspectmode='manual'))
+    
     sats = get_sats_of_chosen_systems()
+    if len(sats) == 0:
+        st.warning('wybierz co najmniej jeden z systemów GNSS!')
+        st.stop()
     satelite_choice = st.selectbox('wybierz satelitę:', sats)
     sat_data = df[df['satelita'] == satelite_choice]
     plot3d.add_trace(go.Scatter3d(x=sat_data['x'], y=sat_data['y'], z=sat_data['z'], mode='lines', name=f'{satelite_choice}'))
-    plot3d.update_layout(title=f'wykres 3d ruchu satelity {satelite_choice} w układzie ECEF')
+    plot3d.update_layout(title=f'wykres 3d ruchu satelity {satelite_choice} w układzie ECEF', hoverlabel=hover_style)
     st.plotly_chart(plot3d)
