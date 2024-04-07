@@ -204,7 +204,6 @@ def calculate_dops_for_selected_systems():
         category.append(dop_category(dops['GDOP']))
     return time, GDOP, PDOP, HDOP, VDOP, TDOP, category
 
-    
 st.title('sns - projekt 1 :satellite:')
 st.sidebar.header('parametry wejściowe')
 date = st.sidebar.date_input('data:', format='DD.MM.YYYY', value=datetime.date(2024, 2, 29))
@@ -224,7 +223,7 @@ choose = st.selectbox('wybierz wykres:', ['wykres liniowy elewacji', 'wykres lic
 MI = 3.986005e14
 OMEGA_E = 7.2921151467e-5
 
-file = r'C:\Users\adria\OneDrive\Pulpit\systemy-nawigacji-satelitarnej\projekt1\Almanac2024053.alm'
+file = r'Almanac2024053.alm'
 
 FI = latitude
 LAMBDA = longitude
