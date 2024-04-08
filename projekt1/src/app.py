@@ -397,8 +397,10 @@ elif choose == 'skyplot animacja':
         st.stop()
     filtered_df = df[df['system'].isin(selected_systems)]
     skyplot = px.scatter_polar(
-        filtered_df, r='elewacja', theta='azymut',
-        color='system', animation_frame='czas', range_r=[maska, 90],
+        filtered_df, r=90-filtered_df['elewacja'], theta=filtered_df['azymut'],
+        color='system', 
+        animation_frame='czas', 
+        range_r=[0, 90-maska],
         hover_data={'czas': False, 'system': True, 'satelita': False},
         hover_name='satelita'
     )
