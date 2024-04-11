@@ -1,7 +1,7 @@
 from readrnx_studenci import readrnxnav, date2tow
 import numpy as np
 
-nav_file = r"projekt2\BRDC00WRD_R_20240650000_01D_GN.rnx"
+nav_file = r"BRDC00WRD_R_20240650000_01D_GN.rnx"
 nav, inav = readrnxnav(nav_file)
 zdrowe = nav[:, 30] == 0
 nav = nav[zdrowe,:]
