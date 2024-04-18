@@ -1,12 +1,46 @@
-# -*- coding: utf-8 -*-
-"""
-
-@author: Maciek
-
-
-"""
 import numpy as np
 from readrnx_studenci import readrnxnav, readrnxobs, date2tow
+import math as mat
+
+OMEGA = 7.2921151467e-5 #[rad/s]
+C = 299792458.0 #[m/s]
+a = 6378137
+e2 = 0.00669438002290
+
+def Np(B):
+    N = a/(1-e2*(np.sin(B)**2))**0.5
+    return N
+
+def hirvonen(X,Y,Z):
+    r = (X**2 + Y**2)**0.5
+    B = mat.atan(Z/(r*(1-e2)))
+    
+    while 1:
+        N = Np(B)
+        H = r/np.cos(B) - N
+        Bst = B
+        B = mat.atan(Z/(r*(1-(e2*(N/(N+H))))))    
+        if abs(Bst-B)<(0.00001/206265):
+            break
+    L = mat.atan2(Y,X)
+    N = Np(B)
+    H = r/np.cos(B) - N
+    return B, L, H 
+
+def Rneu(phi, lamb):
+    R = np.array([[-np.sin(phi)*np.cos(lamb), -np.sin(lamb), np.cos(phi)*np.cos(lamb)],
+                    [-np.sin(phi)*np.sin(lamb), np.cos(lamb), np.cos(phi)*np.sin(lamb)],
+                    [np.cos(phi), 0, np.sin(phi)]])
+    return R
+
+def satpos(sow, week, nav):
+    y = nav[0]
+    m = nav[1]
+    d = nav[2]
+    h = nav[3]
+    min = nav[4]
+    s = nav[5]
+
 
 # cieżka do pliku nawigacyjnego
 nav_file = 'BRDC00WRD_R_20240650000_01D_GN.rnx'
@@ -23,10 +57,10 @@ obs, iobs = readrnxobs(obs_file, time_start, time_end, 'G')
 # odczytanie danych z pliku nawigacyjnego:
 nav, inav = readrnxnav(nav_file)
 
+# print(obs, iobs)
+print(nav, inav)
+exit()
 
-
-
-#%%
 """
 zdefiniowanie współrzędnych przybliżonych odbiornika - mogą to być współrzędne z nagłówka 
 pliku obserwacyjnego, skopiowane "z palca" lub pobierane automatycznie z treci nagłówka pliku Rinex
@@ -44,9 +78,6 @@ poprawnej definicji pętli związanej z czasem obserwacji w ciągu całej doby
 """
 week, tow = date2tow(time_start)[0:2]
 week_end, tow_end = date2tow(time_end)[0:2]
-#%% Obliczenia
-
-
 
 """
 Otwieramy dużą pętlę
@@ -82,27 +113,20 @@ Wewnątrz tej pętli, zajmujemy się obserwacjami wyłącznie dla jednej epoki (
         najczęściej wystarcza mniej iteracji niż 5
         """
 for i in range(5):
-    for sat in satelity:
-        
-            
+    for k, sat in enumerate(satelity):
+        ts = t - tau + dtr
+        alfa = tau * OMEGA
+        R = np.array([[np.cos(alfa), np.sin(alfa), 0], [-np.sin(alfa), np.cos(alfa), 0], [0, 0, 1]])
+        xs_rot = R@xr0
+        rho = np.sqrt((xs_rot[0] - xr0[0])**2 + (xs_rot[1] - xr0[1])**2 + (xs_rot[2] - xr0[2])**2)
         """
-            Wykonujemy kolejne obliczenia, niezależnie dla kolejnych satelitów, obserwowanych
-            w danej epoce, czyli przechodzimy do pętli:
-                for sat in sats: (przyda nam się tutaj również indeks satelity, np. for i, sat in enumerate(sats):)
-                    Obliczamy czas emisji sygnału:
-                        ts = t - tau + dtr
-                    Kolejne kroki, znane z poprzedniego ćwiczenia:
-                    wyznaczamy współrzędne satelity xs (oraz błąd zegara satelity dts) na czas ts (UWAGA, w kolejnych iteracjach
-                    czas ts będzie się zmieniał i aktualizował, neizależnie dla każdego satelity!!!)
-                    
-                    Odległosć geometryczna:
-                        1. rotacja do układu chwilowego - otrzymujemy xs_rot
-                        2. Na podstawie xs_rot obliczamy odległosć geometryczną rho
-                        
                     Obliczamy elewację i azymut
                     Macierz Rneu definiujemy na podstawie x0, przeliczonego do współrzędnych
                     phi, lambda, algorytmem Hirvonena
-                    
+        """
+        B, L, H = hirvonen(xr0[0], xr0[1], xr0[2])
+        RneuMatrix = Rneu(B, L)
+        """
                     Odrzucamy satelity znajdujące się poniżej maski
                     
                         Obliczamy poprawki atmosferyczne - dopiero wówczas, kiedy działać będzie nam program bez uwzględniania poprawek:
