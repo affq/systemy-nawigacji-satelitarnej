@@ -1,0 +1,48 @@
+Data obliczeń: 2024-03-05:11h15m00s
+Satelita nr sat = 2
+Kontrola, czy wybralismy dobrą ramkę:
+ czas efemerydy: toe = 216000.0
+
+1. Czas jaki upłynął od epoki wyznaczenia almanachu: 
+ tk = -2700.000
+2. Duża półos orbity: 
+ a = 26560761.5919
+3. ruch sredni: 
+ n0 = 0.00014585057113006928
+4. Poprawiony ruch sredni: 
+ n = 0.00014585493166884608
+5. Anomalia srednia: 
+ Mk = -1.6609160957678846
+6. Anomalia mimosrodowa:
+E0 -1.6769915896014294
+E1 -1.6769661613862874
+E2 -1.6769662048856522
+E3 -1.676966204811248
+E4 -1.6769662048113751
+7. Anomalia prawdziwa: 
+ vk = -1.6930032989900015
+8. Argument szerokosci: 
+ phik = -2.9199810375720014
+9. Poprawki: 
+ duk = 4.908778137712827e-06 
+ drk = 311.26777 
+ dik = -2.3737800647519315e-07
+10. Poprawione : 
+ uk = -2.9199761287938637 
+ rk = 26606504.23982 
+ ik = 0.9677757076332147
+11. Współrzędne satelity w układzie orbity:
+xk = -25955799.62960
+yk = -5848293.20842
+12. Dlugosc węzła wstępującego: 
+ OMGk = -18.39607694561746
+12. Współrzędne satelity w układzie ECEF:
+Xk = -21879348.443
+Yk = -14352649.245
+Zk = -4816807.994
+
+
+Poprawka do zegara satelity dts = -0.0004752523245770398
+Poprawka relatywistyczna  dt_rel = 3.674986588631067e-08
+Poprawka zegara satelity plus poprawka relatywistyczna
+dt_s_rel = -0.0004752155747111535
