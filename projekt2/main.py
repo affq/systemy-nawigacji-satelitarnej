@@ -81,11 +81,6 @@ for i in range(5):
         R = np.array([[np.cos(alfa), np.sin(alfa), 0], [-np.sin(alfa), np.cos(alfa), 0], [0, 0, 1]])
         xs_rot = R@xr0
         rho = np.sqrt((xs_rot[0] - xr0[0])**2 + (xs_rot[1] - xr0[1])**2 + (xs_rot[2] - xr0[2])**2)
-        """
-                    Obliczamy elewację i azymut
-                    Macierz Rneu definiujemy na podstawie x0, przeliczonego do współrzędnych
-                    phi, lambda, algorytmem Hirvonena
-        """
         B, L, H = hirvonen(xr0[0], xr0[1], xr0[2])
         RneuMatrix = Rneu(B, L)
         """
@@ -93,7 +88,7 @@ for i in range(5):
                     
                         Obliczamy poprawki atmosferyczne - dopiero wówczas, kiedy działać będzie nam program bez uwzględniania poprawek:
                             trop oraz iono
-                    
+
                     Wyznaczamy pseudoodległosć przybliżoną (obliczoną), jako:
                         Pcalc = rho - cdts + dtr + trop + iono
                         
