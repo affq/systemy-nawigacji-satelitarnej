@@ -1,6 +1,7 @@
 import numpy as np
 from readrnx_studenci import readrnxnav, readrnxobs, date2tow
 from funcs import *
+import math
 
 OMEGA = 7.2921151467e-5 #[rad/s]
 C = 299792458.0 #[m/s]
@@ -23,10 +24,7 @@ nav, inav = readrnxnav(nav_file)
 # print(obs, iobs)
 # print(nav, inav)
 
-"""
-zdefiniowanie współrzędnych przybliżonych odbiornika - mogą to być współrzędne z nagłówka 
-pliku obserwacyjnego, skopiowane "z palca" lub pobierane automatycznie z treci nagłówka pliku Rinex
-"""
+# współrzędne przybliżone odbiornika
 xr0 = [3660000.,  1400000.,  5000000.]
 
 """
@@ -53,36 +51,37 @@ satelity = iobs[index_t,0]
 
 tau = 0.07
 dtr = 0
+rho = 0
 
-"""
-Wewnątrz tej pętli, zajmujemy się obserwacjami wyłącznie dla jednej epoki (epoka t), zatem:
-    1. Wybieramy obserwacje dla danej epoki, na podstawie tablicy iobs oraz naszej epoki t
-    czyli, wybieramy te obserwacje z tablicy obs, dla których w tablicy iobs ostatnia kolumna 
-    jest równa t - przypisujemy do zmiennej np. Pobs
-    2. wybieramy satelity, obserwowane w danej epoce, na podstawie tablicy iobs - na podstawie 
-    naszego t - przypisujemy do zmiennej np. sats
-    3. Definiujemy wartości przybliżone błąd zegara odbiornika
-    dtr = 0 oraz czasu propagacji sygnału tau = 0.07
-    4. Najprawdopodobniej przyda się definicja pustych wektorów, np. zawierających 
-    odległosci geometryczne (wartoci przybliżone na podstawie tau)
+A = []
+visible = False
 
-        
-    Przechodzimy do iteracyjnego obliczenia współrzędnych odbiornika - w pierwszych testach naszego programu, zróbmy obliczenia nieiteracyjnie, 
-    ale pamiętajmy o tym, że będzie trzeba przygotować kod do działania w pętli:
-        
-        Po weryfikacji działania programu, można zamienić pętlę for na pętle while, dopisując
-        warunek zbieżnoci kolejnych współrzędnych - skróci nam to czas obliczeń, ponieważ 
-        najczęściej wystarcza mniej iteracji niż 5
-        """
-for i in range(5):
-    for k, sat in enumerate(satelity):
+for i in range(2):
+    for sat in nav:
         ts = t - tau + dtr
+        x0s, y0s, z0s, dt0s = satpos(tow, week, sat)
         alfa = tau * OMEGA
         R = np.array([[np.cos(alfa), np.sin(alfa), 0], [-np.sin(alfa), np.cos(alfa), 0], [0, 0, 1]])
-        xs_rot = R@xr0
+        xyz0s = np.array([x0s, y0s, z0s])
+        xs_rot = R@xyz0s
         rho = np.sqrt((xs_rot[0] - xr0[0])**2 + (xs_rot[1] - xr0[1])**2 + (xs_rot[2] - xr0[2])**2)
         B, L, H = hirvonen(xr0[0], xr0[1], xr0[2])
-        RneuMatrix = Rneu(B, L)
+        sat_odb = np.array([xs_rot[0] - xr0[0], xs_rot[1] - xr0[1], xs_rot[2] - xr0[2]])
+        neu = Rneu(B, L).T.dot(sat_odb)
+        az = np.arctan2(neu[1], neu[0])
+        tau = rho/C
+        
+        if az < 0:
+            az = az + 2*np.pi
+        el = np.arcsin(neu[2]/rho)
+
+        if el > np.radians(el_mask):
+            a = [-(xs_rot[0] - xr0[0])/rho, -(xs_rot[1] - xr0[1])/rho, -(xs_rot[2] - xr0[2])/rho, 1]
+            A.append(a)
+            visible = True
+        else:
+            visible = False
+
         """
                     Odrzucamy satelity znajdujące się poniżej maski
                     

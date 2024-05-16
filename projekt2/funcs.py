@@ -141,3 +141,58 @@ def satpos(sow, week, nav):
     deltatsrel = deltats + deltatrel
 
     return x, y, z, deltatsrel
+
+def Hopfield(h, el, mask, iteration):
+    if el > mask:
+        if iteration==0:
+            dT = 0
+    else:
+        hort = h - 31.36
+        p = 1013.25 * (1 - 0.0000226*hort)**5.225
+        temp = 291.15 - 0.0065 * hort
+        Rh = 0.5 * np.exp(-0.0006396*hort)
+        e = 6.11 * Rh * 10**((7.5*(temp-273.15))/(temp - 35.85))
+
+        Nd0 = 77.64*p/temp
+        Nw0 = -12.96*e/temp + 3.718*10**5*e/temp**2
+        hd = 40136 + 148.72 * (temp - 273.15)
+        hw = 11000
+        dTd0 = 10**(-6)/5 * Nd0 * hd
+        dTw0 = 10**(-6)/5 * Nw0 * hw
+
+        md = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 6.25))))
+        mw = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 2.25))))
+        dT = dTd0*md + dTw0*mw 
+
+alfa = [2.4214E-08, 0.0000E+00, -1.1921E-07, 5.9605E-08]
+beta = [1.2902E+05, 0.0000E+00, -1.9661E+05, -6.5536E+04]
+
+def Klobuchar(phi, lamb, el, az, tgps, alfa, beta):
+    phi = 52
+    lamb = 21
+    el = 30
+    az = 180
+    tgps = 43200
+
+    phis = phi/180
+    lambs = lamb/180
+    els = el/180
+    azs = az/180
+
+
+    # 1. kąt geocentryczny
+    psi = 0.0137 / (els + 0.11) - 0.022
+
+    # 2. szerokość geograficzna IPP
+    phi_ipp = phis  + psi * np.cos(np.deg2rad(az))
+
+    if phi_ipp > 0.416:
+        phi_ipp = 0.416
+    elif phi_ipp < -0.416:
+        phi_ipp = -0.416
+
+    # 3. długość geograficzna IPP
+    lamb_ipp = lambs + (psi * np.sin(np.deg2rad(az)) / np.cos(phi_ipp*np.pi))
+
+    # 4. szerokość geomagnetyczna IPP
+    phim = phi_ipp + 0.064 * np.cos((lamb_ipp - 1.617) * np.pi)
