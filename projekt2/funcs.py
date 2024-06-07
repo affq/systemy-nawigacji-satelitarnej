@@ -61,9 +61,6 @@ def satpos(t, nav):
 
     # czas, jaki upłynął od epoki wyznaczenia efemerydy
     tk = t - toe
-    print(f"t = {t}")
-    print(f"toe = {toe}")
-    print(f"tk = {tk}")
 
     # średnia prędkość kątowa (ruch średni)
     n0 = (mi/a**3)**0.5
