@@ -33,16 +33,9 @@ def Rneu(phi, lamb):
                     [np.cos(phi), 0, np.sin(phi)]])
     return R
 
-def satpos(sow, week, nav):
-    # parametry zegara
-    y = nav[0]
-    m = nav[1]
-    d = nav[2]
-    h = nav[3]
-    min = nav[4]
-    s = nav[5]
+def satpos(t, nav):
     gps_week = nav[27]
-    SOW = nav[17]
+    toe = nav[17]
     alfaf0 = nav[6] # współczynnik wielomianu do poprawki zegara satelity (opóźnienie) [s]
     alfaf1 = nav[7] # współczynnik wielomianu do poprawki zegara (dryft) [s/s]
     alfaf2 = nav[8] # współczynnik wielomianu do poprawki zegara (częstotliwość dryftowania) [s/s^2]
@@ -66,11 +59,11 @@ def satpos(sow, week, nav):
     Crc = nav[22]
     Crs = nav[10]
 
-    t = week * 7 * 86400 + sow
-    toa = gps_week * 7 * 86400 + SOW
-
     # czas, jaki upłynął od epoki wyznaczenia efemerydy
-    tk = t - toa
+    tk = t - toe
+    print(f"t = {t}")
+    print(f"toe = {toe}")
+    print(f"tk = {tk}")
 
     # średnia prędkość kątowa (ruch średni)
     n0 = (mi/a**3)**0.5
@@ -116,12 +109,12 @@ def satpos(sow, week, nav):
     # pozycja satelity w układzie orbity
     xk = rk * np.cos(uk)
     yk = rk * np.sin(uk)
-    
+
     if abs(rk - (xk**2 + yk**2)**0.5) > 1e-2:
         raise ValueError("coś nie tak w układzie orbity")
 
     # poprawiona długość węzła wstępującego
-    Omegak = Omega0 + (Omegadot - omegae) * tk - omegae * SOW
+    Omegak = Omega0 + (Omegadot - omegae) * tk - omegae * toe
 
     # pozycja satelity w układzie ecef
     x = xk * np.cos(Omegak) - (yk * np.cos(ik) * np.sin(Omegak))
@@ -132,7 +125,7 @@ def satpos(sow, week, nav):
         raise ValueError("coś nie tak w układzie ecef")
 
     # błąd synchronizacji zegara satelity
-    deltats = alfaf0 + alfaf1 * (t - toa) + alfaf2 * (t - toa)**2
+    deltats = alfaf0 + alfaf1 * (t - toe) + alfaf2 * (t - toe)**2
 
     # poprawka relatywistyczna
     deltatrel = (-2 * (mi)**0.5 / c**2) * e * a**0.5 * np.sin(Ek)
