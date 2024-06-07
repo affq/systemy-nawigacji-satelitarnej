@@ -45,16 +45,27 @@ tau = 0.07
 dtr = 0
 ro = 0
 
+taus = []
+
 visible = False
 
 for i in range(2):
     print(f"ITERACJA NUMER {i}")
     B, L, H = hirvonen(xr0[0], xr0[1], xr0[2])
+    print(f"współrzędne odbiornika dla iteracji {i} = {xr0}")
     print(f"B, L, H dla iteracji {i} = {np.rad2deg(B), np.rad2deg(L), H}")
+    print(f"dtr w iteracji {i} = {dtr}")
     A = []
     Y = []
     for nr, sat in enumerate(satelity):
         print(f"SATELITA G{sat}:")
+        print(f"i: {i}")
+
+        if i == 0:
+            tau = 0.07
+        else:
+            tau = taus[nr]
+
         print(f"czas propagacji sygnału: {tau:.10f} s")
         idx_sat = inav == sat
         nav_sat = nav[idx_sat,:]
@@ -82,7 +93,7 @@ for i in range(2):
         print(f"wektor satelita-odbiornik: {sat_odb}")
         print(f"elewacja: {np.rad2deg(el)}°")
         
-        # tau = ro/C
+        taus.append(ro/C)
         
         if az < 0:
             az = az + 2*np.pi
@@ -116,12 +127,11 @@ for i in range(2):
     print(f"wektor wyrazów wolnych dla iteracji {i}: {Y}")
     print(f"wektor niewiadomych x dla iteracji {i}: {x}")
 
-    xr = [xr0[0] + x[0], xr0[1] + x[1], xr0[2] + x[2]]
-    print(f"współrzędne odbiornika dla iteracji {i}: \nx = {xr[0]}, \ny = {xr[1]}, \nz = {xr[2]}")
+    xr0 = [xr0[0] + x[0], xr0[1] + x[1], xr0[2] + x[2]]
+    print(f"współrzędne odbiornika dla iteracji {i}: \nx = {xr0[0]}, \ny = {xr0[1]}, \nz = {xr0[2]}")
 
     dtr = dtr + x[3]/C
     print(f"błąd zegara odbiornika dla iteracji {i}: {dtr} s")
-    exit()
 
 
 """
