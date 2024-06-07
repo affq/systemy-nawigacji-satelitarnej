@@ -1,0 +1,10 @@
+1. epoka z pliku - ostatnia iteracja
+sat = 31 el =  21.89 deg az =  44.33 deg iono =  3.132m trop =  6.316m
+sat = 19 el =  10.18 deg az = 250.22 deg iono =  4.044m trop = 13.033m
+sat =  4 el =  73.97 deg az =  69.20 deg iono =  1.539m trop =  2.465m
+sat = 11 el =  21.85 deg az = 316.46 deg iono =  3.135m trop =  6.327m
+sat =  9 el =  58.87 deg az = 246.75 deg iono =  1.699m trop =  2.766m
+sat =  3 el =  42.45 deg az = 115.15 deg iono =  2.109m trop =  3.505m
+sat = 26 el =  15.81 deg az =  70.13 deg iono =  3.573m trop =  8.597m
+sat =  7 el =  12.03 deg az = 190.45 deg iono =  3.882m trop = 11.141m
+sat =  6 el =  49.49 deg az = 286.36 deg iono =  1.897m trop =  3.113m

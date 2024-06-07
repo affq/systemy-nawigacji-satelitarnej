@@ -1,7 +1,6 @@
 import numpy as np
 from readrnx_studenci import readrnxnav, readrnxobs, date2tow
 from funcs import *
-import math
 
 OMEGA = 7.2921151467e-5 #[rad/s]
 C = 299792458.0 #[m/s]
@@ -46,6 +45,8 @@ dtr = 0
 ro = 0
 
 taus = []
+
+xrs_iter = []
 
 visible = False
 
@@ -100,16 +101,14 @@ for i in range(2):
 
         print(f"azymut: {np.rad2deg(az)}°")
 
-        if el > np.radians(el_mask):
-            visible = True
-        else:
-            visible = False
+        """
+        nietestowane
+        """
+        tropo = Hopfield(H, el, el_mask, i)
+        iono = Klobuchar(B, L, el, az, ts)
 
-        """
-                        Obliczamy poprawki atmosferyczne - dopiero wówczas, kiedy działać będzie nam program bez uwzględniania poprawek:
-                            trop oraz iono
-        """
-        if visible:
+
+        if el > np.radians(el_mask):
             Pcalc = ro + c*dtr - c*dt0s
             print(f"Pcalc: {Pcalc}")
             y = Pobs[nr] - Pcalc
@@ -128,11 +127,14 @@ for i in range(2):
     print(f"wektor niewiadomych x dla iteracji {i}: {x}")
 
     xr0 = [xr0[0] + x[0], xr0[1] + x[1], xr0[2] + x[2]]
-    print(f"współrzędne odbiornika dla iteracji {i}: \nx = {xr0[0]}, \ny = {xr0[1]}, \nz = {xr0[2]}")
+    print(f"współrzędne odbiornika dla iteracji {i}: x = {xr0[0]}, y = {xr0[1]}, z = {xr0[2]}")
 
     dtr = dtr + x[3]/C
     print(f"błąd zegara odbiornika dla iteracji {i}: {dtr} s")
 
+    xrs_iter.append(xr0)
+
+print(f"współrzędne odbiornika dla pierwszych dwóch iteracji: {xrs_iter}")
 
 """
             Po skończeniu 5. iteracji, zbieramy obliczone współrzędne xr - warto zebrać również

@@ -133,47 +133,43 @@ def satpos(t, nav):
     return x, y, z, deltatsrel
 
 def Hopfield(h, el, mask, iteration):
+    dT = 0
     if el > mask:
         if iteration==0:
             dT = 0
-    else:
-        hort = h - 31.36
-        p = 1013.25 * (1 - 0.0000226*hort)**5.225
-        temp = 291.15 - 0.0065 * hort
-        Rh = 0.5 * np.exp(-0.0006396*hort)
-        e = 6.11 * Rh * 10**((7.5*(temp-273.15))/(temp - 35.85))
+        else:
+            hort = h - 31.36
+            p = 1013.25 * (1 - 0.0000226*hort)**5.225
+            temp = 291.15 - 0.0065 * hort
+            Rh = 0.5 * np.exp(-0.0006396*hort)
+            e = 6.11 * Rh * 10**((7.5*(temp-273.15))/(temp - 35.85))
 
-        Nd0 = 77.64*p/temp
-        Nw0 = -12.96*e/temp + 3.718*10**5*e/temp**2
-        hd = 40136 + 148.72 * (temp - 273.15)
-        hw = 11000
-        dTd0 = 10**(-6)/5 * Nd0 * hd
-        dTw0 = 10**(-6)/5 * Nw0 * hw
+            Nd0 = 77.64*p/temp
+            Nw0 = -12.96*e/temp + 3.718*10**5*e/temp**2
+            hd = 40136 + 148.72 * (temp - 273.15)
+            hw = 11000
+            dTd0 = 10**(-6)/5 * Nd0 * hd
+            dTw0 = 10**(-6)/5 * Nw0 * hw
 
-        md = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 6.25))))
-        mw = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 2.25))))
-        dT = dTd0*md + dTw0*mw 
+            md = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 6.25))))
+            mw = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 2.25))))
+            dT = dTd0*md + dTw0*mw 
+    
+    return dT
 
 alfa = [2.4214E-08, 0.0000E+00, -1.1921E-07, 5.9605E-08]
 beta = [1.2902E+05, 0.0000E+00, -1.9661E+05, -6.5536E+04]
 
-def Klobuchar(phi, lamb, el, az, tgps, alfa, beta):
-    phi = 52
-    lamb = 21
-    el = 30
-    az = 180
-    tgps = 43200
-
+def Klobuchar(phi, lamb, el, az, tgps, alfa = [2.4214E-08, 0.0000E+00, -1.1921E-07, 5.9605E-08], beta= [1.2902E+05, 0.0000E+00, -1.9661E+05, -6.5536E+04]):
     phis = phi/180
     lambs = lamb/180
     els = el/180
     azs = az/180
 
-
-    # 1. kąt geocentryczny
+    # 1. kąt geocentryczny [sem]
     psi = 0.0137 / (els + 0.11) - 0.022
 
-    # 2. szerokość geograficzna IPP
+    # 2. szerokość geograficzna IPP [sem]
     phi_ipp = phis  + psi * np.cos(np.deg2rad(az))
 
     if phi_ipp > 0.416:
@@ -181,8 +177,39 @@ def Klobuchar(phi, lamb, el, az, tgps, alfa, beta):
     elif phi_ipp < -0.416:
         phi_ipp = -0.416
 
-    # 3. długość geograficzna IPP
+    # 3. długość geograficzna IPP [sem]
     lamb_ipp = lambs + (psi * np.sin(np.deg2rad(az)) / np.cos(phi_ipp*np.pi))
 
-    # 4. szerokość geomagnetyczna IPP
+    # 4. szerokość geomagnetyczna IPP [sem]
     phim = phi_ipp + 0.064 * np.cos((lamb_ipp - 1.617) * np.pi)
+
+    # 5. czas lokalny [sekunda dnia]
+    t = 43200 * lamb_ipp + tgps
+    t = t % 86400
+
+    # 6. amplituda opóźnienia jonosferycznego
+    Aion = alfa[0] + alfa[1]*phim + alfa[2]*phim**2 + alfa[3]*phim**3
+
+    if Aion < 0:
+        Aion = 0
+
+    # 7. okres opóźnienia jonosferycznego
+    Pion = beta[0] + beta[1]*phim + beta[2]*phim**2 + beta[3]*phim**3
+
+    if Pion < 72000:
+        Pion = 72000
+    
+    # 8. faza opóźnienia jonosferycznego
+    Phiion = (2 * np.pi * (t - 50400)) / Pion
+
+    # 9. funkcja mapująca
+    mf = 1 + 16 * (0.53 - els)**3
+
+    # 10. opóźnienie jonosferyczne w kierunku satelity dla częstotliwości L1 gps [m]
+
+    if np.abs(Phiion) <= np.pi/2:
+        dIL1 = c * mf * (5 * 10**(-9) + Aion * (1 - (Phiion**2)/2 + (Phiion**4)/24))
+    else:
+        dIL1 = c * mf * 5 * 10**(-9)
+    
+    return dIL1
