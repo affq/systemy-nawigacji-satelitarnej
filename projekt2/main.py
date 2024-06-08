@@ -21,10 +21,8 @@ inav = inav[zdrowe]
 # współrzędne przybliżone odbiornika
 xr0 = [3660000.,  1400000.,  5000000.]
 
-
-el_mask = 10 # elevation mask/cut off in degrees
+el_mask = 10
  
-
 week, tow = date2tow(time_start)[0:2]
 week_end, tow_end = date2tow(time_end)[0:2]
 
@@ -37,20 +35,22 @@ t = 213300
 index_t = iobs[:,2]==t
 Pobs = obs[index_t,0]
 
-# satelity = iobs[index_t,0]
-satelity = np.array([25, 31, 32, 29, 28, 24, 20, 11, 12,  6])
+satelity = iobs[index_t,0]
+# print(f"satelity w epoce {t}: {satelity}")
+# satelity = np.array([25, 31, 32, 29, 28, 24, 20, 11, 12,  6])
 
 tau = 0.07
 dtr = 0
 ro = 0
 
 taus = []
-
 xrs_iter = []
+
+test_array = []
 
 visible = False
 
-for i in range(2):
+for i in range(5):
     print(f"ITERACJA NUMER {i}")
     B, L, H = hirvonen(xr0[0], xr0[1], xr0[2])
     print(f"współrzędne odbiornika dla iteracji {i} = {xr0}")
@@ -104,11 +104,13 @@ for i in range(2):
         """
         nietestowane
         """
-        tropo = Hopfield(H, el, el_mask, i)
-        iono = Klobuchar(B, L, el, az, ts)
-
-
         if el > np.radians(el_mask):
+            tropo = Hopfield(H, np.rad2deg(el), i)
+            iono = Klobuchar(np.rad2deg(B), np.rad2deg(L), np.rad2deg(el), np.rad2deg(az), ts)
+
+            if i == 4:
+                test_array.append(f"sat = {sat} el = {np.rad2deg(el)}° az = {np.rad2deg(az)}° iono = {iono} tropo = {tropo}")
+
             Pcalc = ro + c*dtr - c*dt0s
             print(f"Pcalc: {Pcalc}")
             y = Pobs[nr] - Pcalc
@@ -134,8 +136,9 @@ for i in range(2):
 
     xrs_iter.append(xr0)
 
-print(f"współrzędne odbiornika dla pierwszych dwóch iteracji: {xrs_iter}")
-
+print(f"współrzędne odbiornika dla pierwszych 5 iteracji: {xrs_iter}")
+for line in test_array:
+    print(line)
 """
             Po skończeniu 5. iteracji, zbieramy obliczone współrzędne xr - warto zebrać również
             liczby obserwowanych satelitów, obliczone wartoci współczynników DOP (przynajmniej PDOP)
