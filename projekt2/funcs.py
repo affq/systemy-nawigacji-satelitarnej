@@ -132,29 +132,47 @@ def satpos(t, nav):
 
     return x, y, z, deltatsrel
 
-def Hopfield(h, el, iteration):
-    dT = 0
-    if iteration==0:
-        dT = 0
-    else:
-        hort = h - 31.36
-        p = 1013.25 * (1 - 0.0000226*hort)**5.225
-        temp = 291.15 - 0.0065 * hort
-        Rh = 0.5 * np.exp(-0.0006396*hort)
-        e = 6.11 * Rh * 10**((7.5*(temp-273.15))/(temp - 35.85))
+# def Hopfield(h, el, iteration):
+#     dT = 0
+#     if iteration==0:
+#         dT = 0
+#     else:
+#         hort = h - 31.36
+#         p = 1013.25 * (1 - 0.0000226*hort)**5.225
+#         temp = 291.15 - 0.0065 * hort
+#         Rh = 0.5 * np.exp(-0.0006396*hort)
+#         e = 6.11 * Rh * 10**((7.5*(temp-273.15))/(temp - 35.85))
 
-        Nd0 = 77.64*p/temp
-        Nw0 = -12.96*e/temp + 3.718*10**5*e/temp**2
-        hd = 40136 + 148.72 * (temp - 273.15)
-        hw = 11000
-        dTd0 = 10**(-6)/5 * Nd0 * hd
-        dTw0 = 10**(-6)/5 * Nw0 * hw
+#         Nd0 = 77.64*p/temp
+#         Nw0 = -12.96*e/temp + 3.718*10**5*e/temp**2
+#         hd = 40136 + 148.72 * (temp - 273.15)
+#         hw = 11000
+#         dTd0 = 10**(-6)/5 * Nd0 * hd
+#         dTw0 = 10**(-6)/5 * Nw0 * hw
 
-        md = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 6.25))))
-        mw = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 2.25))))
-        dT = dTd0*md + dTw0*mw 
+#         md = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 6.25))))
+#         mw = 1/(np.sin(np.deg2rad(np.sqrt(el**2 + 2.25))))
+#         dT = dTd0*md + dTw0*mw 
     
-    return dT
+#     return dT
+
+def Hopfield(h_el, el_sat, i):
+    if i == 0:
+        deltaT = 0
+    h = h_el - 31.36
+    p0 = 1013.25
+    t0 = 291.15
+    Rh0 = 0.5
+    p = p0 * (1 - 0.0000226*h)**(5.225)
+    t = t0 - 0.0065*h
+    Rh = Rh0 * np.exp(-0.0006396)
+    e = 6.11 * Rh * 10**((7.5*(t-273.15))/(t-35.85))
+    deltaT_d0 = 0.002277*p
+    deltaT_w0 = 0.002277*(1255/t + 0.05)*e
+    md = 1/(np.sin(np.deg2rad(np.sqrt(el_sat ** 2 + 6.25))))
+    mw = 1/(np.sin(np.deg2rad(np.sqrt(el_sat ** 2 + 2.25))))
+    deltaT = md * deltaT_d0 + mw * deltaT_w0
+    return deltaT
 
 alfa = [2.4214E-08, 0.0000E+00, -1.1921E-07, 5.9605E-08]
 beta = [1.2902E+05, 0.0000E+00, -1.9661E+05, -6.5536E+04]
