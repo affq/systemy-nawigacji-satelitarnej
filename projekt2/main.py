@@ -4,6 +4,7 @@ from funcs import *
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import filedialog
 
 OMEGA = 7.2921151467e-5
 C = 299792458.0
@@ -13,12 +14,6 @@ obs_file = 'rinex/JOZ200POL_R_20240650000_01D_30S_MO.rnx'
 
 time_start = [2024, 3, 5, 0, 0, 0]  
 time_end = [2024, 3, 5, 23, 59, 59]
-
-obs, iobs = readrnxobs(obs_file, time_start, time_end, 'G')
-nav, inav = readrnxnav(nav_file)
-zdrowe = nav[:,30] == 0
-nav = nav[zdrowe,:]
-inav = inav[zdrowe]
 
 xr0 = xr_reference = [3664880.9100,  1409190.3850,  5009618.2850]
 
@@ -36,9 +31,16 @@ dt = 30
 
 XR5 = []
 DIFFS = []
+DOPS = []
+NEUS = []
 
-def calc(is_tropo=False, is_iono=False):
-    global xr0, dtr, satelity, tau, ro, dt, XR5, DIFFS, root, response
+def calc(nav_file, obs_file, is_tropo=False, is_iono=False, el_mask=10):
+    global xr0, dtr, satelity, tau, ro, dt, XR5, DIFFS, root, response, DOPS, NEUS
+    obs, iobs = readrnxobs(obs_file, time_start, time_end, 'G')
+    nav, inav = readrnxnav(nav_file)
+    zdrowe = nav[:,30] == 0
+    nav = nav[zdrowe,:]
+    inav = inav[zdrowe]
     root.destroy()
     if is_tropo:
         response = messagebox.askyesno("Poprawka troposferyczna", "Czy chcesz użyć modelu Hopfielda do obliczenia poprawki troposferycznej? \nJeżeli nie, zostanie użyty model Saastamoinena.")
@@ -101,6 +103,14 @@ def calc(is_tropo=False, is_iono=False):
                 XR5.append([t, xr0[0], xr0[1], xr0[2]])
                 diff = [xr0[0] - xr_reference[0], xr0[1] - xr_reference[1], xr0[2] - xr_reference[2]]
                 DIFFS.append([t, diff[0], diff[1], diff[2]])
+            
+                Q = np.linalg.pinv(A.T@A)
+                Qdiag = np.diag(Q)
+                GDOP = np.sqrt(np.sum(Qdiag))
+                PDOP = np.sqrt(Qdiag[0] + Qdiag[1] + Qdiag[2])
+                TDOP = np.sqrt(Qdiag[3])
+                DOPS.append([t, GDOP, PDOP, TDOP])
+
 
     DIFFS = np.array(DIFFS)
     fig, axes = plt.subplots(3, 1, figsize=(10, 10))
@@ -126,9 +136,79 @@ def calc(is_tropo=False, is_iono=False):
     plt.show()
     fig.savefig(f"wykresy/tropo_{is_tropo}_iono_{is_iono}.png")
 
+    XR5 = np.array(XR5)
+    fig, axes = plt.subplots(3, 1, figsize=(10, 10))
+    fig.suptitle(f"Wyznaczone współrzędne punktu \n tropo: {is_tropo}, iono: {is_iono}")
+    axes[0].plot((XR5[:,0] - tow)/3600, XR5[:,1], 'r')
+    axes[0].grid()
+    axes[0].set_ylabel('x[m]')
+    axes[1].plot((XR5[:,0] - tow)/3600, XR5[:,2], 'g')
+    axes[1].grid()
+    axes[1].set_ylabel('y[m]')
+    axes[2].plot((XR5[:,0] - tow)/3600, XR5[:,3], 'b')
+    axes[2].grid()
+    axes[2].set_ylabel('z[m]')
+    plt.show()
+    fig.savefig(f"wykresy/tropo_{is_tropo}_iono_{is_iono}_punkty.png")
+
+    DOPS = np.array(DOPS)
+    fig, axes = plt.subplots(3, 1, figsize=(10, 10))
+    fig.suptitle(f"Współczynniki DOP \n tropo: {is_tropo}, iono: {is_iono}")
+    axes[0].plot((DOPS[:,0] - tow)/3600, DOPS[:,1], 'r')
+    axes[0].grid()
+    axes[0].set_ylabel('GDOP')
+    axes[1].plot((DOPS[:,0] - tow)/3600, DOPS[:,2], 'g')
+    axes[1].grid()
+    axes[1].set_ylabel('PDOP')
+    axes[2].plot((DOPS[:,0] - tow)/3600, DOPS[:,3], 'b')
+    axes[2].grid()
+    axes[2].set_ylabel('TDOP')
+    plt.show()
+    fig.savefig(f"wykresy/tropo_{is_tropo}_iono_{is_iono}_dops.png")
+
+    for i in range(len(DIFFS)):
+        B, L, H = hirvonen(XR5[i,1], XR5[i,2], XR5[i,3])
+        Rneu0 = Rneu(B, L)
+        neu0 = Rneu0.T.dot(np.array([XR5[i,1] - xr_reference[0], XR5[i,2] - xr_reference[1], XR5[i,3] - xr_reference[2]]))
+        NEUS.append([DIFFS[i,0], neu0[0], neu0[1], neu0[2]])
+    NEUS = np.array(NEUS)
+
+    fig, axes = plt.subplots(3, 1, figsize=(10, 10))
+    fig.suptitle(f"Różnice między współrzędnymi obliczonymi i referencyjnymi w układzie NEU \n tropo: {is_tropo}, iono: {is_iono}")
+    axes[0].plot((DIFFS[:,0] - tow)/3600, NEUS[:,1], 'r')
+    axes[0].grid()
+    axes[0].set_ylabel('dN[m]')
+    axes[1].plot((DIFFS[:,0] - tow)/3600, NEUS[:,2], 'g')
+    axes[1].grid()
+    axes[1].set_ylabel('dE[m]')
+    axes[2].plot((DIFFS[:,0] - tow)/3600, NEUS[:,3], 'b')
+    axes[2].grid()
+    axes[2].set_ylabel('dU[m]')
+    plt.show()
+    fig.savefig(f"wykresy/tropo_{is_tropo}_iono_{is_iono}_neu.png")
+
+
 root = tk.Tk()
 root.title("snsx2")
-root.geometry("300x130")
+root.geometry("300x250")
+
+def update_nav_file():
+    global nav_file
+    file = filedialog.askopenfilename()
+    if file != '':
+        nav_file = file
+
+def update_obs_file():
+    global obs_file
+    file = filedialog.askopenfilename()
+    if file != '':
+        obs_file = filedialog.askopenfilename()
+
+nav_choose = tk.Button(root, text="Wybierz plik nawigacyjny", command=update_nav_file)
+nav_choose.pack()
+
+obs_choose = tk.Button(root, text="Wybierz plik obserwacyjny", command=update_obs_file)
+obs_choose.pack()
 
 q_label = tk.Label(root, text="Wybierz, które poprawki uwzględnić w obliczeniach:")
 q_label.pack()
@@ -142,7 +222,11 @@ iono_checkbutton = tk.Checkbutton(root, text="jonosferyczna", variable=iono_var)
 tropo_checkbutton.pack()
 iono_checkbutton.pack()
 
-calc_button = tk.Button(root, text="Oblicz", command=lambda: calc(tropo_var.get(), iono_var.get()))
+mask_scale = tk.Scale(root, from_=0, to=45, orient="horizontal", label="Wybierz maskę elewacji:", length=200)
+mask_scale.set(10)
+mask_scale.pack()
+
+calc_button = tk.Button(root, text="Oblicz", command=lambda: calc(nav_file, obs_file, tropo_var.get(), iono_var.get(), mask_scale.get()))
 calc_button.pack()
 
 root.mainloop()
