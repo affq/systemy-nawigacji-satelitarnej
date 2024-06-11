@@ -1,0 +1,26 @@
+Summary file for          : CBKA1390.24o
+Created (local time)      : 2024-05-22 12:31:21
+
+Order ID                  : 63026
+Order number              : 52
+Order item ID             : 159506
+
+Input parameters          : 
+Start time (GPS)          : 2024-05-18 00:00:00
+End time (GPS)            : 2024-05-19 00:00:00
+Interval [sec]            : 30
+VRS request               : No
+Station                   : CBKA
+
+Result                    : 
+Generation status         : Successful
+Effective minutes         : 1440
+Available epochs          : 2880
+File size [Bytes]         : 66051305
+File type                 : RINEX 3.04
+
+Data analysis             : 
+Block 0 start             : 2024-05-18 00:00:00
+Block 0 end               : 2024-05-19 00:00:00
+Block 0 good Epochs       : 2880
+Block 0 missing Epochs    : 0

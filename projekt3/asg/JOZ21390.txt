@@ -1,0 +1,42 @@
+Summary file for          : JOZ21390.24o
+Created (local time)      : 2024-05-22 12:33:40
+
+Order ID                  : 63026
+Order number              : 52
+Order item ID             : 159507
+
+Input parameters          : 
+Start time (GPS)          : 2024-05-18 00:00:00
+End time (GPS)            : 2024-05-19 00:00:00
+Interval [sec]            : 30
+VRS request               : No
+Station                   : JOZ2
+
+Result                    : 
+Generation status         : Successful
+Effective minutes         : 1438
+Available epochs          : 2876
+File size [Bytes]         : 67274470
+File type                 : RINEX 3.04
+
+Data analysis             : 
+Block 1 start             : 2024-05-18 00:00:00
+Block 1 end               : 2024-05-18 07:30:30
+Block 1 good Epochs       : 901
+Block 1 missing Epochs    : 0
+Gap 1 start               : 2024-05-18 07:30:30
+Gap 1 end                 : 2024-05-18 07:31:30
+Gap 1 good Epochs         : 0
+Gap 1 missing Epochs      : 2
+Block 2 start             : 2024-05-18 07:31:30
+Block 2 end               : 2024-05-18 23:58:30
+Block 2 good Epochs       : 1974
+Block 2 missing Epochs    : 0
+Gap 2 start               : 2024-05-18 23:58:30
+Gap 2 end                 : 2024-05-18 23:59:30
+Gap 2 good Epochs         : 0
+Gap 2 missing Epochs      : 2
+Block 3 start             : 2024-05-18 23:59:30
+Block 3 end               : 2024-05-19 00:00:00
+Block 3 good Epochs       : 1
+Block 3 missing Epochs    : 0

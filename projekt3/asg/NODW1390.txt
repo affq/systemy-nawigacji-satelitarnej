@@ -1,0 +1,34 @@
+Summary file for          : NODW1390.24o
+Created (local time)      : 2024-05-22 12:38:42
+
+Order ID                  : 63026
+Order number              : 52
+Order item ID             : 159509
+
+Input parameters          : 
+Start time (GPS)          : 2024-05-18 00:00:00
+End time (GPS)            : 2024-05-19 00:00:00
+Interval [sec]            : 30
+VRS request               : No
+Station                   : NODW
+
+Result                    : 
+Generation status         : Successful
+Effective minutes         : 1439
+Available epochs          : 2878
+File size [Bytes]         : 79554045
+File type                 : RINEX 3.04
+
+Data analysis             : 
+Block 1 start             : 2024-05-18 00:00:00
+Block 1 end               : 2024-05-18 02:28:30
+Block 1 good Epochs       : 297
+Block 1 missing Epochs    : 0
+Gap 1 start               : 2024-05-18 02:28:30
+Gap 1 end                 : 2024-05-18 02:29:30
+Gap 1 good Epochs         : 0
+Gap 1 missing Epochs      : 2
+Block 2 start             : 2024-05-18 02:29:30
+Block 2 end               : 2024-05-19 00:00:00
+Block 2 good Epochs       : 2581
+Block 2 missing Epochs    : 0
