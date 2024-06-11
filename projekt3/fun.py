@@ -24,7 +24,7 @@ def Hirvonen(X,Y,Z):
     H = r/np.cos(B) - N
     return B, L, H
 
-def Neu(phi, lamb):
+def Rneu(phi, lamb):
     R = np.array([[-np.sin(phi)*np.cos(lamb), -np.sin(lamb), np.cos(phi)*np.cos(lamb)],
                     [-np.sin(phi)*np.sin(lamb), np.cos(lamb), np.cos(phi)*np.sin(lamb)],
                     [np.cos(phi), 0, np.sin(phi)]])
